@@ -14,16 +14,16 @@ logger = logging.getLogger(__name__)
 class AnalyzerConstants:
     """Page analyzer constants"""
     # Element filtering
-    MIN_ELEMENT_WIDTH = 20
-    MIN_ELEMENT_HEIGHT = 20
-    MIN_ELEMENT_AREA = 400
+    MIN_ELEMENT_WIDTH = 10
+    MIN_ELEMENT_HEIGHT = 10
+    MIN_ELEMENT_AREA = 100
 
     # Text constraints
-    MAX_TEXT_LENGTH = 30
+    MAX_TEXT_LENGTH = 50
     MAX_VAR_NAME_LENGTH = 55
     MAX_TITLE_LENGTH = 30
     MIN_TITLE_LENGTH = 2
-    MAX_TEXT_WORDS = 5
+    MAX_TEXT_WORDS = 10
 
     # Image optimization
     IMAGE_QUALITY = 60
@@ -547,7 +547,7 @@ class PageAnalyzer:
                     "class_name": cls,
                     "is_password": is_pwd
                 }
-            else:  # iOS
+            else:  # IOS
                 cls = att.get("type", "")
                 coords = self.parse_bounds_ios(elem)
                 is_pwd = "Secure" in str(cls)

@@ -81,6 +81,9 @@ def handle_config():
 
             updated = config_mgr.update(request.json)
 
+            # KRİTİK GÜNCELLEME: Konfigürasyonu .env'ye kaydet
+            config_mgr.save_to_env(updated)
+
             # Close active drivers to apply new config
             driver_mgr.quit_driver()
 

@@ -97,7 +97,7 @@
             <div class="flex flex-col gap-4">
                 <div class="flex items-center gap-3 border-b border-[#27272a] pb-3">
                     <div class="w-10 h-10 rounded-lg bg-[#27272a] flex items-center justify-center text-gray-300">
-                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </div>
                     <div>
                         <h3 class="text-sm font-bold text-white">Appium Settings</h3>
@@ -181,15 +181,17 @@
 
         <div class="w-7/12 bg-[#09090b] flex flex-col">
             <div class="px-4 py-3 border-b border-[#27272a] bg-[#09090b] flex justify-between items-center">
-
-                <h2 class="text-xs font-bold text-gray-500 uppercase tracking-widest">DETECTED ELEMENTS</h2>
-
+                <div class="segmented-control h-7 border border-[#52525b]" id="view-toggle">
+                    <div id="view-slider" class="segment-slider w-[calc(50%-2px)] bg-red-600"></div>
+                    <div id="view-list" class="segment-option active" onclick="window.toggleSourceView('list')">ELEMENT LIST</div>
+                    <div id="view-source" class="segment-option" onclick="window.toggleSourceView('source')">RAW SOURCE</div>
+                </div>
                 <span id="element-count" class="text-[10px] bg-[#27272a] text-gray-400 px-2 py-1 rounded-full font-mono">0</span>
             </div>
 
-            <div id="elements-list" class="flex-1 overflow-y-auto p-3 space-y-2 pb-20"></div>
+            <div id="elements-list" class="flex-1 overflow-y-auto p-3 space-y-2 pb-20" style="display:block;"></div>
 
-            <div id="source-view-container" style="display:none;">
+            <div id="source-view-container" class="flex-1 overflow-y-auto p-3 pb-20 hidden">
                 <div id="xml-tree-root"></div>
             </div>
 

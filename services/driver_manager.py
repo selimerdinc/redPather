@@ -5,6 +5,9 @@ from appium.options.ios import XCUITestOptions
 from selenium.webdriver.common.actions.action_builder import ActionBuilder
 from selenium.webdriver.common.actions.pointer_input import PointerInput
 from selenium.webdriver.common.actions import interaction
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class DriverManager:
@@ -60,7 +63,7 @@ class DriverManager:
             del self.drivers[platform]
 
         self.platform = platform
-        print(f"🚀 {platform} Driver Initializing...")
+        logger.info(f"🚀 {platform} Driver Initializing...")
         cfg = self.config_mgr.get_all()
 
         if platform == "ANDROID":
@@ -120,10 +123,10 @@ class DriverManager:
     def perform_tap(self, x, y):
         driver = self.get_driver()
         if not driver:
-            print("❌ Hata: Tıklama için sürücü aktif değil.")
+            logger.error("❌ Hata: Tıklama için sürücü aktif değil.")
             return False  # Hata durumunda False döndür
 
-        print(f"👉 Tapping at {x}, {y} on {self.platform}")
+        logger.info(f"👉 Tapping at {x}, {y} on {self.platform}")
         if self.platform == "IOS":
             driver.execute_script("mobile: tap", {"x": x, "y": y})
         else:
@@ -140,7 +143,7 @@ class DriverManager:
     def perform_scroll(self, direction):
         driver = self.get_driver()
         if not driver:
-            print("❌ Hata: Kaydırma için aktif sürücü yok.")
+            logger.error("❌ Hata: Kaydırma için aktif sürücü yok.")
             return False  # Hata durumunda False döndür
 
         if self.platform == "IOS":
