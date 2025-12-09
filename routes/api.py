@@ -1,4 +1,6 @@
 import concurrent.futures
+import hashlib
+
 from flask import Blueprint, jsonify, request, render_template
 from services.context import driver_mgr, config_mgr
 from services.page_analyzer import PageAnalyzer
@@ -22,6 +24,9 @@ def handle_config():
         return jsonify({"status": "success", "config": updated})
 
 
+screenshot_cache = {}
+
+
 @api_bp.route('/scan', methods=['POST'])
 def scan():
     try:
@@ -32,18 +37,31 @@ def scan():
 
         driver = driver_mgr.start_driver(platform)
 
-        # PARALEL İŞLEM
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_shot = executor.submit(driver.get_screenshot_as_base64)
-            future_source = executor.submit(lambda: driver.page_source)
-            future_win = executor.submit(driver_mgr.get_window_size)
+        # ✅ Screenshot cache kontrolü
+        source = driver.page_source
+        source_hash = hashlib.md5(source.encode()).hexdigest()
 
-            raw_screenshot = future_shot.result()
-            source = future_source.result()
-            win_size = future_win.result()
+        if source_hash in screenshot_cache:
+            optimized_image = screenshot_cache[source_hash]
+            print("📸 Using cached screenshot")
+        else:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future_shot = executor.submit(driver.get_screenshot_as_base64)
+                future_win = executor.submit(driver_mgr.get_window_size)
 
+                raw_screenshot = future_shot.result()
+                win_size = future_win.result()
+
+            analyzer = PageAnalyzer(driver)
+            optimized_image = analyzer.optimize_image(raw_screenshot)
+            screenshot_cache[source_hash] = optimized_image
+
+            # Cache boyutu kontrolü (max 10 screenshot)
+            if len(screenshot_cache) > 10:
+                screenshot_cache.pop(next(iter(screenshot_cache)))
+
+        win_size = driver_mgr.get_window_size()
         analyzer = PageAnalyzer(driver)
-        optimized_image = analyzer.optimize_image(raw_screenshot)
         result = analyzer.analyze(source, platform, verify, prefix, win_size)
 
         if "error" in result:
@@ -56,7 +74,7 @@ def scan():
             "page_name": result['page_name'],
             "window_w": win_size['width'],
             "window_h": win_size['height'],
-            "raw_source": source  # Source View için XML'i de gönderiyoruz
+            "raw_source": source
         })
 
     except Exception as e:

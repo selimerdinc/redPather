@@ -111,78 +111,173 @@ class PageAnalyzer:
             pass
         return None
 
-    def get_best_locator(self, elem, tree, attribs, platform, should_verify):
-        candidates = []
-        res_id = attribs.get("res_id");
-        content_desc = attribs.get("content_desc");
+    def generate_robust_xpath(self, elem, tree, platform, attribs):
+        """
+        XPath Uzmanı - Kırılmaz, unique, maintain edilebilir xpath'ler üret
+
+        Priority:
+        1. Unique attributes (resource-id, content-desc, text)
+        2. Parent-child relationships
+        3. Sibling navigation
+        4. Attribute combinations
+        5. Positioned relative xpaths
+        """
+
+        cls = attribs.get("class_name")
+        res_id = attribs.get("res_id")
+        content_desc = attribs.get("content_desc")
         text = attribs.get("text")
-        cls = attribs.get("class_name");
-        is_password = attribs.get("is_password")
-        is_input = "EditText" in str(cls) or "TextField" in str(cls) or "Secure" in str(cls)
 
-        if platform == "ANDROID" and res_id:
-            clean_id = res_id.split("/")[-1]
-            candidates.append((AppiumBy.ID, clean_id, "RESOURCE_ID", clean_id))
-            if "input" in clean_id or "field" in clean_id or "btn" in clean_id:
-                candidates.append(
-                    (AppiumBy.XPATH, f"//*[contains(@resource-id, '{clean_id}')]", "PARTIAL_ID", clean_id))
+        # LEVEL 1: Perfect Match - Tek attribute ile unique
+        if res_id and self._is_unique_in_tree(tree, f"//*[@resource-id='{res_id}']"):
+            return f"//*[@resource-id='{res_id}']"
 
+        if content_desc and self._is_unique_in_tree(tree, f"//*[@content-desc='{content_desc}']"):
+            return f"//*[@content-desc='{content_desc}']"
+
+        if text and len(text) < 30 and self._is_unique_in_tree(tree, f"//*[@text='{text}']"):
+            return f"//*[@text='{text}']"
+
+        # LEVEL 2: Parent Context - Parent ile birlikte unique yap
+        parent = elem.getparent()
+        if parent is not None:
+            parent_id = parent.get("resource-id")
+            if parent_id:
+                # Parent ID + child class
+                xpath = f"//*[@resource-id='{parent_id}']//{cls}"
+                if text:
+                    xpath += f"[@text='{text}']"
+                elif content_desc:
+                    xpath += f"[@content-desc='{content_desc}']"
+
+                if self._is_unique_in_tree(tree, xpath):
+                    return xpath
+
+        # LEVEL 3: Attribute Combination - Multiple attributes
+        conditions = []
+        if res_id:
+            conditions.append(f"contains(@resource-id, '{res_id.split('/')[-1]}')")
+        if text and len(text) < 50:
+            conditions.append(f"@text='{text}'")
         if content_desc:
-            tag_name = "CONTENT_DESC" if platform == "ANDROID" else "ACC_ID"
-            candidates.append((AppiumBy.ACCESSIBILITY_ID, content_desc, tag_name, content_desc))
+            conditions.append(f"@content-desc='{content_desc}'")
 
-        if platform == "IOS":
-            if text and not is_input:
-                safe_txt = text.replace('"', '')
-                chain = f'**/ {cls}[`label == "{safe_txt}" OR name == "{safe_txt}"`]'
-                candidates.append((AppiumBy.IOS_CLASS_CHAIN, chain, "IOS_CHAIN", text))
-            if content_desc:
-                safe_desc = content_desc.replace('"', '')
-                chain_desc = f'**/ {cls}[`name == "{safe_desc}"`]'
-                candidates.append((AppiumBy.IOS_CLASS_CHAIN, chain_desc, "IOS_CHAIN", content_desc))
+            if len(conditions) >= 2:
+                xpath = f"//{cls}[{' and '.join(conditions)}]"
+            if self._is_unique_in_tree(tree, xpath):
+                return xpath
 
-        rel = self.generate_relative_locator(elem, tree, platform)
-        if rel: candidates.append(
-            (AppiumBy.XPATH, rel["locator"].replace("xpath=", ""), "ANCHOR_XP", rel["var_suffix"]))
+        # LEVEL 4: Sibling Navigation - Kardeş elementlerle pozisyon
+        siblings = list(parent) if parent is not None else []
+        try:
+            my_index = siblings.index(elem)
+            if my_index > 0:
+                prev_sibling = siblings[my_index - 1]
+                prev_text = prev_sibling.get("text") or prev_sibling.get("content-desc")
+                if prev_text:
+                    xpath = f"//*[@text='{prev_text}']/following-sibling::{cls}[1]"
+                    if self._is_unique_in_tree(tree, xpath):
+                        return xpath
+        except:
+            pass
 
-        if text and not is_input:
-            s_txt = self.safe_xpath_val(text)
-            xp = f"//*[contains(@text, {s_txt})]" if platform == "ANDROID" else f"//XCUIElementTypeStaticText[@name={s_txt}]"
-            candidates.append((AppiumBy.XPATH, xp, "XPATH", text))
+        # LEVEL 5: Hierarchical Path - Full parent chain (son çare)
+        return self._build_hierarchical_xpath(elem, tree)
 
-        if not should_verify and candidates:
-            cand = candidates[0]
-            suffix = cand[3] if len(cand) > 3 else (text or content_desc or "elem")
-            strat_key = "xpath"
-            if cand[0] == AppiumBy.ID:
-                strat_key = "id"
-            elif cand[0] == AppiumBy.ACCESSIBILITY_ID:
-                strat_key = "accessibility_id"
-            elif cand[0] == AppiumBy.IOS_CLASS_CHAIN:
-                strat_key = "ios_class_chain"
-            return {"locator": f"{strat_key}={cand[1]}", "var_suffix": suffix, "strategy": cand[2] + " (NV)"}
+    def _is_unique_in_tree(self, tree, xpath):
+        """Xpath'in tree'de tek element döndürüp döndürmediğini kontrol et"""
+        try:
+            elements = tree.xpath(xpath)
+            return len(elements) == 1
+        except:
+            return False
 
-        best = None
-        if should_verify and candidates:
-            for item in candidates:
-                by, val, strat = item[0], item[1], item[2]
-                suffix_hint = item[3] if len(item) > 3 else (text or content_desc or "elem")
-                search_val = attribs.get("res_id") if by == AppiumBy.ID and platform == "ANDROID" else val
-                try:
-                    elems = self.driver.find_elements(by=by, value=search_val)
-                    if len(elems) == 1:
-                        loc_prefix = "xpath"
-                        if by == AppiumBy.ID:
-                            loc_prefix = "id"
-                        elif by == AppiumBy.ACCESSIBILITY_ID:
-                            loc_prefix = "accessibility_id"
-                        elif by == AppiumBy.IOS_CLASS_CHAIN:
-                            loc_prefix = "ios_class_chain"
-                        best = {"locator": f"{loc_prefix}={search_val}", "var_suffix": suffix_hint, "strategy": strat}
-                        break
-                except:
-                    continue
-        return best
+    def _build_hierarchical_xpath(self, elem, tree):
+        """
+        Son çare: Root'tan başlayarak tam hierarchy xpath oluştur
+        Örnek: /hierarchy/android.widget.FrameLayout[2]/android.widget.LinearLayout/android.widget.Button
+        """
+        path_parts = []
+        current = elem
+
+        while current is not None:
+            parent = current.getparent()
+            if parent is None:
+                break
+
+            siblings = [s for s in parent if s.tag == current.tag]
+            if len(siblings) > 1:
+                index = siblings.index(current) + 1
+                path_parts.insert(0, f"{current.tag}[{index}]")
+            else:
+                path_parts.insert(0, current.tag)
+
+            current = parent
+
+            # Max 4 level ile sınırla (çok uzun olmasın)
+            if len(path_parts) >= 4:
+                break
+
+        return "//" + "/".join(path_parts)
+
+    def get_best_locator(self, elem, tree, info, platform, should_verify):
+        """
+        En iyi, en kuvvetli konum belirleyiciyi (locator) seçer.
+        Öncelik Sırası (Kırılmaya Karşı Dayanıklılık):
+        1. Resource ID (Android)
+        2. Accessibility ID (Content-Desc/Name)
+        3. Text (Unique ve Kısa ise)
+        4. Relative XPath (Label'a göre Input bulma)
+        5. Robust/Güçlü XPath
+        """
+        cls = info["class_name"]
+        res_id = info["res_id"]
+        content_desc = info["content_desc"]
+        text = info["text"]
+
+        # --- 1. SEVİYE: ID BAZLI LOCATOR'LAR (En Hızlı ve En Güvenilir) ---
+
+        # 1.1 Android için Resource-ID (ID)
+        if platform == "ANDROID" and res_id and res_id not in self.BLACKLIST_IDS:
+            return {"locator": f"id={res_id}", "var_suffix": res_id.split('/')[-1], "strategy": "ID"}
+
+        # 1.2 iOS/Android için Accessibility ID (content-desc/name)
+        if content_desc:
+            return {"locator": f"accessibility id={content_desc}", "var_suffix": content_desc, "strategy": "ACC_ID"}
+
+        # --- 2. SEVİYE: TEXT BAZLI LOCATOR'LAR ---
+
+        # 2.1 Text ile konumlandırma (Kısa, anlamlı ve unique ise)
+        if text and len(text) < 30 and text.count(' ') < 5 and not text.isdigit():
+            safe_txt = self.safe_xpath_val(text)
+
+            # Platforma göre text/label/value kontrolü
+            if platform == "ANDROID":
+                text_xpath = f"//{cls}[@text={safe_txt}]"
+            else:  # iOS
+                text_xpath = f"//{cls}[@label={safe_txt} or @value={safe_txt}]"
+
+            if self._is_unique_in_tree(tree, text_xpath):
+                return {"locator": f"xpath={text_xpath}", "var_suffix": text, "strategy": "TEXT_XP"}
+
+        # --- 3. SEVİYE: GELİŞMİŞ/İLİŞKİSEL LOCATOR'LAR (Sizin Yapınız) ---
+
+        # 3.1 Input alanları için Relative Locator (Label'a göre Input bulma)
+        # Bu, input'ları çevreleyen metin etiketlerine göre bulma yapınızdır.
+        relative_res = self.generate_relative_locator(elem, tree, platform)
+        if relative_res:
+            return relative_res
+
+        # 3.2 Robust (Sağlam) XPath üretme
+        # Bu, sizin çok seviyeli ve ilişkilere dayalı XPath üretme yapınızdır.
+        robust_xpath = self.generate_robust_xpath(elem, tree, platform, info)
+        if robust_xpath:
+            # XPath'in adlandırılmasında kullanmak için bir metin veya ID tercih et
+            suffix_text = text or content_desc or res_id.split('/')[-1]
+            return {"locator": f"xpath={robust_xpath}", "var_suffix": suffix_text, "strategy": "ROBUST_XP"}
+
+        # Hiçbir güçlü locator bulunamadı.
+        return None
 
     def process_single_element(self, args):
         elem, tree, platform, should_verify, index, prefix = args
@@ -205,6 +300,7 @@ class PageAnalyzer:
         if any(b_cls in cls for b_cls in self.IGNORE_CLASSES):
             if not info["text"] and not info["content_desc"]: return None
         if platform == "ANDROID" and any(b_id in info["res_id"] for b_id in self.BLACKLIST_IDS): return None
+
 
         res = self.get_best_locator(elem, tree, info, platform, should_verify)
 
