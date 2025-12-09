@@ -222,8 +222,6 @@ class PageAnalyzer:
             if not prefix or len(prefix) < 2: prefix = "page"
             v_name = f"${{selector_{prefix}_{final_variable_suffix}}}"
 
-            # --- KRİTİK DÜZELTME: FULL XPATH ALIYORUZ ---
-            # XPath'i elementten, ait olduğu ağacı (root tree) çağırarak alıyoruz
             full_xpath = elem.getroottree().getpath(elem)
 
             return {
@@ -232,7 +230,7 @@ class PageAnalyzer:
                 "locator": res['locator'],
                 "strategy": res['strategy'],
                 "text": info["text"] or info["content_desc"] or "",
-                "full_xpath": full_xpath  # <-- Source Highlight için
+                "full_xpath": full_xpath
             }
         return None
 

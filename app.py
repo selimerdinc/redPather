@@ -6,7 +6,10 @@ app = Flask(__name__)
 # Route'ları (Controller) uygulamaya kaydet
 app.register_blueprint(api_bp)
 
+# app.py dosyasındaki app.py
+# ...
 if __name__ == '__main__':
-    print("🚀 QA Red Mapper Server Starting...")
+    # Başlık güncellemesi
+    print("🚀 QA Red Pather Server Starting...")
     print("🌍 Open http://127.0.0.1:5000 in your browser")
     app.run(debug=True, port=5000)

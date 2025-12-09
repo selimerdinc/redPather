@@ -40,8 +40,6 @@ code { font-family: 'JetBrains Mono', monospace; }
 .modal-overlay.open { opacity: 1; pointer-events: auto; }
 .modal-box { background: #18181b; border: 1px solid #3f3f46; width: 340px; border-radius: 12px; padding: 24px; transform: scale(0.95); transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: 0 20px 50px -10px rgba(0,0,0,0.8); }
 .modal-overlay.open .modal-box { transform: scale(1); }
-
-/* CONFIG MODAL SPECIFIC */
 .config-modal-box { width: 500px; max-height: 90vh; overflow-y: auto; }
 .config-input { background: #27272a; border: 1px solid #3f3f46; color: white; padding: 8px; border-radius: 6px; width: 100%; font-size: 12px; font-family: 'JetBrains Mono', monospace; margin-top: 4px; outline: none; }
 .config-input:focus { border-color: #ef4444; }
@@ -76,12 +74,16 @@ body.nav-mode .target-box:hover { border-color: #3b82f6; box-shadow: 0 0 15px rg
 .tooltip-btn::before { content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%) translateY(-5px); border-width: 6px; border-style: solid; border-color: transparent transparent #3f3f46 transparent; opacity: 0; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100; }
 .tooltip-btn:hover::after, .tooltip-btn:hover::before { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+/* XML TREE STYLES */
 #source-view-container {
     padding: 10px 0 20px 0;
     font-family: 'JetBrains Mono', monospace;
     color: #a1a1aa;
     line-height: 1.5;
     user-select: text;
+    overflow-x: hidden; /* YATAY KAYMAYI KES */
+    width: 100%;
+    white-space: normal;
 }
 .xml-node {
     padding: 2px 0 2px 0;
@@ -92,7 +94,7 @@ body.nav-mode .target-box:hover { border-color: #3b82f6; box-shadow: 0 0 15px rg
     align-items: center;
 }
 .xml-node:hover, .xml-node.active {
-    background-color: #18181b; /* Hafif vurgu */
+    background-color: rgba(239, 68, 68, 0.2); /* Vurgu Rengi */
     color: #e4e4e7;
 }
 .xml-node-toggle {
@@ -107,19 +109,23 @@ body.nav-mode .target-box:hover { border-color: #3b82f6; box-shadow: 0 0 15px rg
     transform: rotate(-90deg);
 }
 .xml-node-tag {
-    color: #ef4444; /* Kırmızı Tag */
+    color: #ef4444;
     font-weight: 500;
+    flex-shrink: 0;
 }
 .xml-node-attributes {
-    color: #60a5fa; /* Mavi Attributeler */
+    color: #60a5fa;
     font-style: italic;
     margin-left: 8px;
-    word-break: break-all;
+    word-break: break-word; /* UZUN SATIR KIRILMASI */
+    min-width: 0;
 }
 .xml-children {
     display: block;
-    margin-left: 15px; /* Girinti */
-    border-left: 1px solid #27272a; /* Hiyerarşi çizgisi */
+    margin-left: 15px;
+    border-left: 1px solid #27272a;
+    min-width: 0;
+    overflow-x: hidden;
 }
 .hidden-children {
     display: none;
