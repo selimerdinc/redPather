@@ -1,13 +1,10 @@
-"""
-QA Red Pather - Main Application
-Refactored with improved architecture
-"""
 import logging
 import sys
+import os
 from flask import Flask
 from flask_cors import CORS
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from backend.core.exceptions import RedPatherError
 from backend.api.routes import register_blueprints
 from backend.api.middleware import setup_error_handlers
 

@@ -199,5 +199,12 @@
     </main>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<!-- Load services first -->
+    <script src="{{ url_for('static', filename='js/services/api.service.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/services/state.service.js') }}"></script>
+
+    <!-- Load main app -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
+

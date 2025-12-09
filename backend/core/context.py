@@ -13,8 +13,3 @@ def cleanup():
     Cleanup resources on shutdown
     """
     driver_mgr.quit_all()
-    driver_mgr.session_mgr.stop_cleanup_thread()
-
-# Register cleanup on exit
-import atexit
-atexit.register(cleanup)
