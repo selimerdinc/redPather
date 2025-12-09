@@ -1,0 +1,75 @@
+# ---------------------------------------------------
+# KURAL 1: HASSAS VE ORTAMSAL VERİLER
+# ---------------------------------------------------
+
+# Hassas bilgileri iceren .env dosyasını ignore et
+.env
+
+# ---------------------------------------------------
+# KURAL 2: SANAL ORTAMLAR (Virtual Environments)
+# ---------------------------------------------------
+
+# Populer sanal ortam dizinleri
+venv/
+.venv/
+env/
+/bin/
+/include/
+/lib/
+/lib64/
+
+# Sanal ortam dizinlerini baska isimlerle kullanıyorsanız
+# myenv/
+# .direnv/
+
+# ---------------------------------------------------
+# KURAL 3: PYTHON BYTES VE DERLENMİŞ DOSYALAR
+# ---------------------------------------------------
+
+# Byte-kod dosyaları
+*.pyc
+__pycache__/
+*.pyd
+*.pyo
+
+# ---------------------------------------------------
+# KURAL 4: İŞLETİM SİSTEMİ VE IDE DOSYALARI
+# ---------------------------------------------------
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# PyCharm/IntelliJ
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# VS Code
+.vscode/
+
+# ---------------------------------------------------
+# KURAL 5: DERLEME/BUILD ÇIKTILARI
+# ---------------------------------------------------
+
+# Python paketleme
+dist/
+build/
+*.egg-info/
+.tox/
+
+# Test ve Kapsam Raporları
+.coverage
+htmlcov/
+
+# ---------------------------------------------------
+# KURAL 6: APPIUM/SELENIUM LOGLARI VE ÇIKTILARI
+# ---------------------------------------------------
+
+# Log dosyaları
+*.log
+logs/
+target/
