@@ -7,6 +7,7 @@ from PIL import Image
 from lxml import etree
 from appium.webdriver.common.appiumby import AppiumBy
 import concurrent.futures
+from backend.core.context import driver_mgr
 
 logger = logging.getLogger(__name__)
 

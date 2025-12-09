@@ -1,7 +1,15 @@
+"""
+QA Red Pather - Main Application
+Refactored with improved architecture
+"""
 import logging
 import sys
 from flask import Flask
-from routes.api import api_bp
+from flask_cors import CORS
+
+from backend.core.exceptions import RedPatherError
+from backend.api.routes import register_blueprints
+from backend.api.middleware import setup_error_handlers
 
 # Configure logging
 logging.basicConfig(
@@ -20,23 +28,29 @@ logging.getLogger('appium').setLevel(logging.INFO)
 
 logger = logging.getLogger(__name__)
 
-# Create Flask app
-app = Flask(__name__)
 
-# Register blueprints
-app.register_blueprint(api_bp)
+def create_app():
+    """Application factory"""
+    app = Flask(__name__)
+
+    # Enable CORS
+    CORS(app)
+
+    # Configuration
+    app.config['JSON_SORT_KEYS'] = False
+    app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB
+
+    # Register blueprints
+    register_blueprints(app)
+
+    # Setup error handlers
+    setup_error_handlers(app)
+
+    return app
 
 
-# Error handlers
-@app.errorhandler(404)
-def not_found(error):
-    return {"status": "error", "message": "Endpoint not found"}, 404
-
-
-@app.errorhandler(500)
-def internal_error(error):
-    logger.error(f"Internal server error: {error}")
-    return {"status": "error", "message": "Internal server error"}, 500
+# Create app instance
+app = create_app()
 
 
 if __name__ == '__main__':
