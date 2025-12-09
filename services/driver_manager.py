@@ -14,20 +14,39 @@ class DriverManager:
         self.config_mgr = config_manager
 
     def get_driver(self):
+        """Aktif platformun Appium sürücüsünü döndürür."""
         return self.drivers.get(self.platform)
+
+    def get_page_source(self):
+        """Aktif sürücünün sayfa kaynağını (XML) döndürür."""
+        driver = self.get_driver()
+        if driver:
+            return driver.page_source
+        return None
+
+    def take_screenshot(self):
+        """
+        Aktif sürücüden base64 formatında ekran görüntüsü alır.
+        (driver.get_screenshot_as_base64 metodu kullanılır)
+        """
+        driver = self.get_driver()
+        if driver:
+            return driver.get_screenshot_as_base64()
+        return None
 
     def is_active(self, platform=None):
         target = platform or self.platform
         driver = self.drivers.get(target)
         if not driver: return False
         try:
+            # Sürücünün hala canlı olup olmadığını kontrol eder
             driver.current_activity
             return True
         except:
             return False
 
     def start_driver(self, platform):
-        # ✅ Platform değiştirmek session kaybettirmiyor!
+        # Platform değiştirmek session kaybettirmiyor, aktifse geçiş yap.
         if platform in self.drivers and self.is_active(platform):
             self.platform = platform
             return self.drivers[platform]
@@ -56,7 +75,7 @@ class DriverManager:
             options.new_command_timeout = 3600
             options.set_capability("settings[ignoreUnimportantViews]", True)
             options.set_capability("settings[waitForIdleTimeout]", 100)
-        else:
+        else:  # IOS
             options = XCUITestOptions()
             options.platform_name = "iOS"
             options.automation_name = "XCUITest"
@@ -75,7 +94,7 @@ class DriverManager:
         return self.drivers[platform]
 
     def quit_driver(self, platform=None):
-        # ✅ Belirli bir platform'u kapat veya hepsini
+        # Belirli bir platformu kapat veya hepsini kapat
         if platform:
             if platform in self.drivers:
                 try:
@@ -93,23 +112,22 @@ class DriverManager:
             self.drivers = {}
 
     def get_window_size(self):
-        # ❌ HATA: if self.driver: return self.driver.get_window_size()
-        # ✅ DÜZELTME:
         driver = self.get_driver()
-        if driver: return driver.get_window_size()
+        if driver:
+            return driver.get_window_size()
         return {"width": 0, "height": 0}
 
     def perform_tap(self, x, y):
         driver = self.get_driver()
         if not driver:
-            print("❌ Hata: Sürücü aktif değil.")
-            return
+            print("❌ Hata: Tıklama için sürücü aktif değil.")
+            return False  # Hata durumunda False döndür
 
         print(f"👉 Tapping at {x}, {y} on {self.platform}")
         if self.platform == "IOS":
             driver.execute_script("mobile: tap", {"x": x, "y": y})
         else:
-            actions = ActionBuilder(driver) # <-- driver değişkeni kullanıldı
+            actions = ActionBuilder(driver)
             p = actions.add_pointer_input(interaction.POINTER_TOUCH, "finger")
             p.create_pointer_move(duration=0, x=x, y=y)
             p.create_pointer_down(button=0)
@@ -117,10 +135,16 @@ class DriverManager:
             p.create_pointer_up(button=0)
             actions.perform()
         time.sleep(0.5)
+        return True  # Başarılı aksiyonda True döndür
 
     def perform_scroll(self, direction):
+        driver = self.get_driver()
+        if not driver:
+            print("❌ Hata: Kaydırma için aktif sürücü yok.")
+            return False  # Hata durumunda False döndür
+
         if self.platform == "IOS":
-            self.driver.execute_script("mobile: scroll", {"direction": direction})
+            driver.execute_script("mobile: scroll", {"direction": direction})
         else:
             win = self.get_window_size()
             cx = win['width'] // 2
@@ -129,7 +153,8 @@ class DriverManager:
                 sy, ey = int(h * 0.7), int(h * 0.3)
             else:
                 sy, ey = int(h * 0.3), int(h * 0.7)
-            actions = ActionBuilder(self.driver)
+
+            actions = ActionBuilder(driver)
             p = actions.add_pointer_input(interaction.POINTER_TOUCH, "finger")
             p.create_pointer_move(duration=0, x=cx, y=sy)
             p.create_pointer_down(button=0)
@@ -138,22 +163,29 @@ class DriverManager:
             p.create_pointer_up(button=0)
             actions.perform()
         time.sleep(0.8)
+        return True  # Başarılı aksiyonda True döndür
 
     def go_back(self):
-        if self.driver:
-            self.driver.back()
+        driver = self.get_driver()
+        if driver:
+            driver.back()
             time.sleep(0.5)
+            return True  # Başarılı aksiyonda True döndür
+        return False  # Başarısız aksiyonda False döndür
 
     def hide_keyboard(self):
-        if not self.driver: return
+        driver = self.get_driver()
+        if not driver: return False  # Sürücü yoksa False döndür
+
         if self.platform == "IOS":
             try:
-                self.driver.hide_keyboard()
+                driver.hide_keyboard()
             except:
-                self.driver.execute_script("mobile: hideKeyboard", {"strategy": "tapOutside"})
+                driver.execute_script("mobile: hideKeyboard", {"strategy": "tapOutside"})
         else:
             try:
-                self.driver.hide_keyboard()
+                driver.hide_keyboard()
             except:
                 pass
         time.sleep(1)
+        return True  # Başarılı aksiyonda True döndür
