@@ -428,6 +428,44 @@ window.resetUI = function(showEmpty = false) {
     }
 }
 
+// --- YENİ İŞLEV: TÜM DEĞİŞKENLERİ KOPYALA ---
+
+window.copyAllVariables = function() {
+    const activeElements = allElementsData.filter(el => !el.isDeleted);
+
+    if (activeElements.length === 0) {
+        window.showToast("Uyarı", "Kopyalanacak aktif element yok", 'info');
+        return;
+    }
+
+    let output = "";
+    output += "*** Variables ***\n";
+
+    activeElements.forEach(item => {
+        // Değişken adını ${} olmadan ayıkla
+        const varName = item.variable.replace('${', '').replace('}', '').trim();
+
+        // Locator'ı strateji ve değer olarak ayır
+        const parts = item.locator.split('=', 1);
+        const locatorStrategy = parts[0] || "xpath"; // Varsayılan olarak xpath
+        // İlk '=' işaretinden sonraki tüm değeri al
+        const locatorValue = item.locator.substring(locatorStrategy.length + 1) || item.locator;
+
+        // Format: ${selector_page_element} = 	strategy=value (Robot Framework formatında sekme ile)
+        const line = `\${${varName}} = \t${locatorStrategy}=${locatorValue}`;
+        output += line + "\n";
+    });
+
+    // Panoya kopyala
+    navigator.clipboard.writeText(output).then(() => {
+        window.showToast("Kopyalandı!", `${activeElements.length} değişken kopyalandı (Robot Formatı)`, 'success');
+    }).catch(err => {
+        console.error('Kopyalama başarısız:', err);
+        window.showToast("Kopyalama Başarısız", "Lütfen tarayıcı izinlerini kontrol edin", 'error');
+    });
+}
+
+
 // --- RENDER LOGIC ---
 
 window.renderResult = function(data) {
@@ -464,7 +502,7 @@ window.renderResult = function(data) {
             window.createListItem(el, index);
         });
 
-        window.showToast("Success", `Found ${data.elements.length} elements`, 'success');
+        window.showToast("Başarılı", `${data.elements.length} element bulundu`, 'success');
     };
 }
 
@@ -628,7 +666,7 @@ window.startEdit = function(element, index, field) {
         if (save) {
             itemData[field] = input.value;
             element.innerText = input.value;
-            window.showToast("Updated", `${field} updated successfully`, 'success');
+            window.showToast("Güncellendi", `${field} başarıyla güncellendi`, 'success');
         } else {
             element.innerText = currentValue;
         }
@@ -746,14 +784,14 @@ window.verifyLocatorByIndex = async function(e, index, btn) {
 
         if (data.valid) {
             btn.innerHTML = `<span class="text-emerald-500 font-bold text-sm">✓</span>`;
-            window.showToast("Verified", `Element found (count: ${data.count})`, 'success');
+            window.showToast("Doğrulandı", `Element bulundu (sayı: ${data.count})`, 'success');
         } else {
             btn.innerHTML = `<span class="text-red-500 font-bold text-sm">✕</span>`;
-            window.showToast("Failed", `Found ${data.count} elements (expected 1)`, 'error');
+            window.showToast("Başarısız", `Bulunan element sayısı ${data.count} (beklenen 1)`, 'error');
         }
     } catch (error) {
         btn.innerHTML = `<span class="text-yellow-500 font-bold text-sm">!</span>`;
-        handleApiError(error, 'Verify');
+        handleApiError(error, 'Doğrulama');
     }
 
     setTimeout(() => btn.innerHTML = originalIcon, 2000);
@@ -774,22 +812,22 @@ window.copyDataByIndex = function(e, index, mode = 'Line') {
         const locatorValue = item.locator.split('=')[1] || item.locator;
         const locatorStrategy = item.locator.split('=')[0];
         copyText = `\${${item.variable.replace('$', '').replace('{', '').replace('}', '').trim()}} = ${locatorStrategy}=${locatorValue}`;
-        copyTarget = "Locator Line";
+        copyTarget = "Locator Satırı";
     } else if (mode === 'Variable') {
         // Sadece değişken adını kopyala (Örn: ${selector_page_element})
         copyText = item.variable;
-        copyTarget = "Variable Name";
+        copyTarget = "Değişken Adı";
     } else if (mode === 'Locator') {
         // Sadece locator dizesini kopyala (Örn: xpath=//xpath_value)
         copyText = item.locator;
-        copyTarget = "Locator Value";
+        copyTarget = "Locator Değeri";
     }
 
     // Panoya kopyalama işlemini gerçekleştir
     navigator.clipboard.writeText(copyText).then(() => {
-        window.showToast("Copied!", `${copyTarget} copied to clipboard`, 'success');
+        window.showToast("Kopyalandı!", `${copyTarget} panoya kopyalandı`, 'success');
     }).catch(err => {
-        console.error('Copy failed:', err);
-        window.showToast("Copy Failed", "Please check browser permissions", 'error');
+        console.error('Kopyalama başarısız:', err);
+        window.showToast("Kopyalama Başarısız", "Lütfen tarayıcı izinlerini kontrol edin", 'error');
     });
 }
