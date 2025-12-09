@@ -8,7 +8,7 @@
 # ---------------------------------------------------
 # KURAL 2: SANAL ORTAMLAR (Virtual Environments)
 # ---------------------------------------------------
-
+.idea
 # Populer sanal ortam dizinleri
 venv/
 .venv/
