@@ -247,31 +247,60 @@ window.scanScreen = async function() {
     } catch (error) { handleApiError(error, 'Scan'); window.resetUI(true); }
 }
 
+window.performTap = async function(x, y, imgW, imgH) {
+    document.getElementById('loading-text').innerText = "TAPPING...";
+    document.getElementById('loading').classList.remove('hidden');
+    try {
+        const result = await apiCall('/api/tap', {
+            method: 'POST',
+            body: JSON.stringify({ x: x, y: y, img_w: imgW, img_h: imgH, platform: currentPlatform })
+        });
+
+        // --- RECORDER LOGIC ---
+        if (appState.get('recorder.isRecording')) {
+            // Backend'den gelen akıllı aksiyon verisini kaydet
+            if (result.data && result.data.smart_action) {
+                appState.addStep(result.data.smart_action);
+            }
+        }
+        // ----------------------
+
+        window.scanScreen();
+    } catch (error) { handleApiError(error, 'Tap'); window.resetUI(false); }
+}
+
 // GÜNCELLENDİ: /api/scroll
 window.performScroll = async function(direction) {
     document.getElementById('loading-text').innerText = "SCROLLING...";
     document.getElementById('loading').classList.remove('hidden');
     try {
         await apiCall('/api/scroll', { method: 'POST', body: JSON.stringify({ direction: direction, platform: currentPlatform }) });
+
+        // --- RECORDER LOGIC ---
+        if (appState.get('recorder.isRecording')) {
+            appState.addStep({ type: 'scroll', direction: direction });
+        }
+        // ----------------------
+
         window.scanScreen();
     } catch (error) { handleApiError(error, 'Scroll'); window.resetUI(false); }
-}
-
-// GÜNCELLENDİ: /api/tap
-window.performTap = async function(x, y, imgW, imgH) {
-    document.getElementById('loading-text').innerText = "TAPPING...";
-    document.getElementById('loading').classList.remove('hidden');
-    try {
-        await apiCall('/api/tap', { method: 'POST', body: JSON.stringify({ x: x, y: y, img_w: imgW, img_h: imgH, platform: currentPlatform }) });
-        window.scanScreen();
-    } catch (error) { handleApiError(error, 'Tap'); window.resetUI(false); }
 }
 
 // GÜNCELLENDİ: /api/back
 window.triggerBack = async function() {
     document.getElementById('loading-text').innerText = "BACK...";
     document.getElementById('loading').classList.remove('hidden');
-    try { await apiCall('/api/back', { method: 'POST' }); window.scanScreen(); } catch (error) { handleApiError(error, 'Back'); window.resetUI(false); }
+    try {
+        await apiCall('/api/back', { method: 'POST' });
+
+        // --- RECORDER LOGIC ---
+        if (appState.get('recorder.isRecording')) {
+            appState.addStep({ type: 'back' });
+        }
+        // ----------------------
+
+        window.scanScreen();
+    } catch (error) { handleApiError(error, 'Back'); window.resetUI(false); }
 }
 
 // GÜNCELLENDİ: /api/hide-keyboard (actions.py'da hide-keyboard tanımlı)
@@ -744,4 +773,49 @@ window.copyDataByIndex = function(e, index, mode) {
     } else if (mode === 'Variable') txt = item.variable;
     else txt = item.locator;
     navigator.clipboard.writeText(txt).then(() => window.showToast("Copied", mode, 'success'));
+}
+
+window.toggleRecordMode = function() {
+    const isRecording = appState.toggleRecording();
+    const btn = document.getElementById('recordBtn');
+
+    if (isRecording) {
+        btn.classList.add('bg-red-600', 'text-white', 'animate-pulse');
+        btn.classList.remove('text-gray-400');
+        window.showToast("Recording Started", "Actions will be saved", "info");
+    } else {
+        btn.classList.remove('bg-red-600', 'text-white', 'animate-pulse');
+        btn.classList.add('text-gray-400');
+        window.showToast("Recording Stopped", `${appState.get('recorder.steps').length} steps captured`, "success");
+        window.exportRecording(); // Kayıt bitince otomatik kod üretip göster
+    }
+}
+
+window.exportRecording = function() {
+    const steps = appState.get('recorder.steps');
+    if (steps.length === 0) return;
+
+    let code = "*** Test Cases ***\nRecorded Test Scenario\n";
+
+    steps.forEach(step => {
+        if (step.type === 'element_click') {
+            // Robot Framework Formatı
+            code += `    Click Element    ${step.locator}\n`;
+        } else if (step.type === 'coordinate_tap') {
+            code += `    Click At Coordinates    ${step.x}    ${step.y}\n`;
+        } else if (step.type === 'scroll') {
+            code += `    Swipe    ${step.direction}\n`;
+        } else if (step.type === 'back') {
+            code += `    Go Back\n`;
+        }
+    });
+
+    // Konsola bas veya panoya kopyala
+    console.log(code);
+    navigator.clipboard.writeText(code).then(() => {
+        window.showToast("Exported", "Test script copied to clipboard", "success");
+    });
+
+    // İsterseniz burada bir Modal açıp kodu gösterebilirsiniz.
+    alert("Test Script Generated (Copied to Clipboard):\n\n" + code);
 }

@@ -36,7 +36,13 @@ class StateService {
             xmlSource: '',
 
             // Config State
-            config: {}
+            config: {},
+
+            // --- YENİ EKLENEN: RECORDER STATE ---
+            recorder: {
+                isRecording: false,
+                steps: []
+            }
         };
 
         // Subscribers map: { path: [callbacks] }
@@ -132,6 +138,42 @@ class StateService {
         }
 
         target[lastKey] = value;
+    }
+
+    // ====================
+    // RECORDER METHODS (YENİ)
+    // ====================
+
+    /**
+     * Toggle recording state
+     */
+    toggleRecording() {
+        const isRecording = !this.get('recorder.isRecording');
+        this.set('recorder.isRecording', isRecording);
+        return isRecording;
+    }
+
+    /**
+     * Add a recorded step
+     */
+    addStep(step) {
+        const steps = this.get('recorder.steps');
+        // Timestamp ve sıra no ekle
+        const newStep = {
+            ...step,
+            id: Date.now(),
+            order: steps.length + 1
+        };
+        steps.push(newStep);
+        this.set('recorder.steps', steps);
+        console.log("Step Recorded:", newStep);
+    }
+
+    /**
+     * Clear all steps
+     */
+    clearSteps() {
+        this.set('recorder.steps', []);
     }
 
     // ====================

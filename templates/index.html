@@ -89,6 +89,12 @@
                     </div>
                 </button>
             </div>
+            <div class="w-px h-4 bg-[#27272a] mx-2"></div>
+
+            <button id="recordBtn" onclick="window.toggleRecordMode()" class="flex items-center gap-2 px-3 py-1 rounded-full border border-[#27272a] bg-[#18181b] text-gray-400 hover:text-white transition-all text-[10px] font-bold tracking-wider group tooltip-btn" data-tooltip="Start/Stop Recording">
+                <div class="w-2 h-2 rounded-full bg-current transition-transform group-active:scale-90"></div>
+                <span>REC</span>
+            </button>
         </div>
     </header>
 
@@ -198,12 +204,10 @@
         </div>
     </main>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <!-- Load services first -->
     <script src="{{ url_for('static', filename='js/services/api.service.js') }}"></script>
     <script src="{{ url_for('static', filename='js/services/state.service.js') }}"></script>
 
-    <!-- Load main app -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

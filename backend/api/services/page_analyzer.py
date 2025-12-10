@@ -307,6 +307,58 @@ class PageAnalyzer:
 
         return "//" + "/".join(path_parts) if path_parts else f"//{elem.tag}"
 
+        # ==========================================
+        # SMART TAP EKLENTİSİ (Mevcut kodların EN ALTINA ekleyin)
+        # ==========================================
+    def find_element_at_coords(self, tree: etree.Element, x: int, y: int, platform: str) -> Optional[etree.Element]:
+        """
+        Verilen koordinatlarda (x, y) en üstteki tıklanabilir elementi bulur.
+        """
+        all_elements = tree.xpath('//*')
+
+        # Tersten döngü: XML'de son gelen element UI'da en üsttedir (Z-index)
+        for elem in reversed(all_elements):
+            bounds = None
+            try:
+                if platform == "ANDROID":
+                    bounds = self.parse_bounds_android(elem.attrib.get("bounds"))
+                else:
+                    bounds = self.parse_bounds_ios(elem)
+            except Exception:
+                continue
+
+            if not bounds:
+                continue
+
+            # Koordinat bu elementin sınırları içinde mi?
+            if (bounds['x'] <= x <= bounds['x'] + bounds['w']) and \
+                    (bounds['y'] <= y <= bounds['y'] + bounds['h']):
+
+                # Gereksiz Container'ları (FrameLayout vb.) elemek için kontrol
+                class_name = elem.attrib.get("class") if platform == "ANDROID" else elem.attrib.get("type")
+
+                # Ignore listesi kontrolü
+                is_ignored_class = False
+                if hasattr(AnalyzerConstants, 'IGNORE_CLASSES'):
+                    is_ignored_class = any(
+                        ignored in str(class_name) for ignored in AnalyzerConstants.IGNORE_CLASSES)
+
+                # Elementin metni veya ayırt edici özelliği var mı?
+                has_text = False
+                if platform == "ANDROID":
+                    has_text = bool(elem.attrib.get("text") or elem.attrib.get("content-desc") or elem.attrib.get(
+                        "resource-id"))
+                else:
+                    has_text = bool(elem.attrib.get("label") or elem.attrib.get("name") or elem.attrib.get("value"))
+
+                # Eğer ignore listesindeyse ve belirleyici bir özelliği yoksa (boş kutuysa) atla
+                if is_ignored_class and not has_text:
+                    continue
+
+                return elem
+
+        return None
+
     def generate_relative_locator(self, elem: etree.Element, tree: etree.Element,
                                   platform: str) -> Optional[Dict[str, str]]:
         """
