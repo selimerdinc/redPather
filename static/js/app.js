@@ -8,9 +8,10 @@ let currentDeviceW = 0;
 let currentDeviceH = 0;
 let rawSource = "";
 
+// Constants
 const TOAST_DURATION = 3500;
 const API_TIMEOUT = 30000;
-const BOUNDS_TOLERANCE = 15; // Tolerans biraz artırıldı
+const BOUNDS_TOLERANCE = 15;
 
 window.addEventListener('DOMContentLoaded', () => {
     window.loadConfig();
@@ -21,8 +22,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function logAppStart() {
     console.log("%c🚀 QA Red Pather Started", "color: #ef4444; font-size: 16px; font-weight: bold;");
-    console.log("Version: 1.8.0");
-    console.log("Build: Coordinate-First Matching");
+    console.log("Version: 2.1.0");
+    console.log("Build: API Paths Fixed");
 }
 
 function initializeEventListeners() {
@@ -87,7 +88,13 @@ async function apiCall(url, options = {}) {
         const response = await fetch(url, { ...options, signal: controller.signal, headers: { 'Content-Type': 'application/json', ...options.headers } });
         clearTimeout(timeoutId);
         const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) throw new Error('Server returned non-JSON response');
+
+        // JSON olmayan yanıtları (örn: HTML hata sayfası) işle
+        if (!contentType || !contentType.includes('application/json')) {
+             if(!response.ok) throw new Error(`Server Error: ${response.status}`);
+             throw new Error('Server returned non-JSON response');
+        }
+
         const data = await response.json();
         if (!response.ok) {
             const errorMsg = data.message || `HTTP ${response.status}`;
@@ -111,12 +118,16 @@ function handleApiError(error, context) {
     else if (message.includes('Network')) { title = "Connection Error"; message = "Cannot reach server."; }
     else if (message.includes('Invalid')) { title = "Invalid Input"; }
     else if (message.includes('driver')) { title = "Driver Error"; message = "Device connection lost."; }
+    else if (message.includes('404')) { title = "Not Found"; message = "Endpoint not found (Check URL)."; }
     window.showToast(title, message, 'error');
 }
 
+// GÜNCELLENDİ: /api/config
 window.loadConfig = async function() {
     try {
-        const data = await apiCall('/config');
+        const result = await apiCall('/api/config');
+        const data = result.data || result; // backend response structure handles 'data' wrapper
+
         if (document.getElementById('conf_android_pkg')) {
             document.getElementById('conf_android_pkg').value = data.ANDROID_PKG || '';
             document.getElementById('conf_android_act').value = data.ANDROID_ACT || '';
@@ -130,6 +141,7 @@ window.loadConfig = async function() {
     } catch (error) { handleApiError(error, 'Config load'); }
 }
 
+// GÜNCELLENDİ: /api/config
 window.saveConfig = async function() {
     const config = {
         ANDROID_PKG: document.getElementById('conf_android_pkg').value,
@@ -142,7 +154,7 @@ window.saveConfig = async function() {
         IOS_SIGN_ID: document.getElementById('conf_ios_sign').value,
     };
     try {
-        await apiCall('/config', { method: 'POST', body: JSON.stringify(config) });
+        await apiCall('/api/config', { method: 'POST', body: config });
         document.getElementById('configModal').classList.remove('open');
         window.showToast("Saved", "Configuration updated", 'success');
     } catch (error) { handleApiError(error, 'Config save'); }
@@ -208,6 +220,7 @@ window.showToast = function(title, message, type = 'success') {
     setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, TOAST_DURATION);
 }
 
+// GÜNCELLENDİ: /api/scan
 window.scanScreen = async function() {
     const btn = document.getElementById('scanBtn');
     const loading = document.getElementById('loading');
@@ -224,33 +237,77 @@ window.scanScreen = async function() {
     window.clearSelection();
     allElementsData = [];
     try {
-        const data = await apiCall('/scan', { method: 'POST', body: JSON.stringify({ platform: currentPlatform, verify: verify, prefix: prefix }) });
-        if (data.status === 'success') { window.renderResult(data); } else { throw new Error(data.message || 'Scan failed'); }
-    } catch (error) { handleApiError(error, 'Scan'); window.resetUI(true); }
-}
+        const result = await apiCall('/api/scan', { method: 'POST', body: JSON.stringify({ platform: currentPlatform, verify: verify, prefix: prefix }) });
 
-window.performScroll = async function(direction) {
-    document.getElementById('loading-text').innerText = "SCROLLING...";
-    document.getElementById('loading').classList.remove('hidden');
-    try { await apiCall('/scroll', { method: 'POST', body: JSON.stringify({ direction: direction, platform: currentPlatform }) }); window.scanScreen(); } catch (error) { handleApiError(error, 'Scroll'); window.resetUI(false); }
+        // Backend 'create_success_response' wrapper kullanıyorsa data'yı çıkar
+        const data = result.data || result;
+
+        if (result.status === 'success') { window.renderResult(data); }
+        else { throw new Error(result.message || 'Scan failed'); }
+    } catch (error) { handleApiError(error, 'Scan'); window.resetUI(true); }
 }
 
 window.performTap = async function(x, y, imgW, imgH) {
     document.getElementById('loading-text').innerText = "TAPPING...";
     document.getElementById('loading').classList.remove('hidden');
-    try { await apiCall('/tap', { method: 'POST', body: JSON.stringify({ x: x, y: y, img_w: imgW, img_h: imgH, platform: currentPlatform }) }); window.scanScreen(); } catch (error) { handleApiError(error, 'Tap'); window.resetUI(false); }
+    try {
+        const result = await apiCall('/api/tap', {
+            method: 'POST',
+            body: JSON.stringify({ x: x, y: y, img_w: imgW, img_h: imgH, platform: currentPlatform })
+        });
+
+        // --- RECORDER LOGIC ---
+        if (appState.get('recorder.isRecording')) {
+            // Backend'den gelen akıllı aksiyon verisini kaydet
+            if (result.data && result.data.smart_action) {
+                appState.addStep(result.data.smart_action);
+            }
+        }
+        // ----------------------
+
+        window.scanScreen();
+    } catch (error) { handleApiError(error, 'Tap'); window.resetUI(false); }
 }
 
+// GÜNCELLENDİ: /api/scroll
+window.performScroll = async function(direction) {
+    document.getElementById('loading-text').innerText = "SCROLLING...";
+    document.getElementById('loading').classList.remove('hidden');
+    try {
+        await apiCall('/api/scroll', { method: 'POST', body: JSON.stringify({ direction: direction, platform: currentPlatform }) });
+
+        // --- RECORDER LOGIC ---
+        if (appState.get('recorder.isRecording')) {
+            appState.addStep({ type: 'scroll', direction: direction });
+        }
+        // ----------------------
+
+        window.scanScreen();
+    } catch (error) { handleApiError(error, 'Scroll'); window.resetUI(false); }
+}
+
+// GÜNCELLENDİ: /api/back
 window.triggerBack = async function() {
     document.getElementById('loading-text').innerText = "BACK...";
     document.getElementById('loading').classList.remove('hidden');
-    try { await apiCall('/action/back', { method: 'POST' }); window.scanScreen(); } catch (error) { handleApiError(error, 'Back'); window.resetUI(false); }
+    try {
+        await apiCall('/api/back', { method: 'POST' });
+
+        // --- RECORDER LOGIC ---
+        if (appState.get('recorder.isRecording')) {
+            appState.addStep({ type: 'back' });
+        }
+        // ----------------------
+
+        window.scanScreen();
+    } catch (error) { handleApiError(error, 'Back'); window.resetUI(false); }
 }
 
+// GÜNCELLENDİ: /api/hide-keyboard (actions.py'da hide-keyboard tanımlı)
 window.triggerHideKeyboard = async function() {
     document.getElementById('loading-text').innerText = "HIDING KEYBOARD...";
     document.getElementById('loading').classList.remove('hidden');
-    try { await apiCall('/action/hide_keyboard', { method: 'POST' }); window.scanScreen(); } catch (error) { handleApiError(error, 'Hide KB'); window.resetUI(false); }
+    try { await apiCall('/api/hide-keyboard', { method: 'POST' }); window.scanScreen(); } catch (error) { handleApiError(error, 'Hide KB'); window.resetUI(false); }
 }
 
 window.resetUI = function(showEmpty = false) {
@@ -333,20 +390,15 @@ function findElementByBounds(targetX, targetY, targetW, targetH) {
     return -1;
 }
 
-/**
- * GÜNCELLENMİŞ: Koordinat Öncelikli XML Eşleşmesi
- * XPath yerine doğrudan koordinatlara bakarak en doğru düğümü bulur.
- */
 function findAndHighlightXMLNode(elementData) {
     window.toggleSourceView('source');
     const treeRoot = document.getElementById('xml-tree-root');
     let foundNode = null;
     let minDistance = Number.MAX_VALUE;
 
-    // Hedef elementin koordinatları (Map'ten gelen)
     const t = elementData.coords;
     if (!t) {
-        window.showToast("Hata", "Element koordinatları eksik.", 'error');
+        window.showToast("Hata", "Koordinat yok", 'error');
         return false;
     }
     const tMx = t.x + t.w / 2;
@@ -354,7 +406,6 @@ function findAndHighlightXMLNode(elementData) {
 
     const nodes = treeRoot.querySelectorAll('.xml-node');
 
-    // Tüm XML düğümlerini tara ve EN YAKIN olanı bul
     for (const nodeContainer of nodes) {
         const d = nodeContainer.dataset;
         if (d.x && d.y && d.w && d.h) {
@@ -362,14 +413,10 @@ function findAndHighlightXMLNode(elementData) {
             const nMx = nx + nw / 2;
             const nMy = ny + nh / 2;
 
-            // Merkez noktaları arasındaki mesafe
             const distance = Math.sqrt(Math.pow(nMx - tMx, 2) + Math.pow(nMy - tMy, 2));
-
-            // Boyut farkı kontrolü (Benzer boyutta olmalı)
             const sizeDiff = Math.abs(nw - t.w) + Math.abs(nh - t.h);
 
             if (distance < BOUNDS_TOLERANCE && sizeDiff < BOUNDS_TOLERANCE * 2) {
-                // Eğer birden fazla aday varsa, en yakını seç
                 if (distance < minDistance) {
                     minDistance = distance;
                     foundNode = nodeContainer;
@@ -418,7 +465,6 @@ function renderNode(element) {
     const nodeContainer = document.createElement('div');
     nodeContainer.className = 'xml-node';
 
-    // KOORDİNAT VERİLERİNİ SAKLA
     const bounds = parseBoundsFromElement(element);
     if (bounds) {
         nodeContainer.dataset.x = bounds.x;
@@ -426,8 +472,6 @@ function renderNode(element) {
         nodeContainer.dataset.w = bounds.w;
         nodeContainer.dataset.h = bounds.h;
     }
-
-    const fullPath = calculateLxmlLikeXPath(element);
 
     const toggle = document.createElement('span');
     toggle.className = 'xml-node-toggle';
@@ -463,19 +507,12 @@ function renderNode(element) {
     attribSpan.innerText = attribText;
     nodeContainer.appendChild(attribSpan);
 
-    // XML -> Map Eşleşmesi (Koordinat Öncelikli)
     nodeContainer.onclick = (e) => {
         e.stopPropagation();
 
         let idx = -1;
-        // Eğer bu XML düğümünün koordinatları varsa, listede bu koordinatlara uyanı bul
         if (bounds) {
             idx = findElementByBounds(bounds.x, bounds.y, bounds.w, bounds.h);
-        }
-
-        // Eğer koordinatla bulunamadıysa, XPath ile dene (Yedek)
-        if (idx === -1) {
-            idx = allElementsData.findIndex(item => item.full_xpath && item.full_xpath.trim() === fullPath.trim());
         }
 
         document.querySelectorAll('.xml-node.active').forEach(n => n.classList.remove('active'));
@@ -535,7 +572,6 @@ window.renderResult = function(data) {
     };
 }
 
-// GÜNCELLEME: Koordinat ile XML bulma çağrısı
 window.createBox = function(el, index) {
     const box = document.createElement('div');
     box.id = `box-${index}`;
@@ -548,9 +584,9 @@ window.createBox = function(el, index) {
             const cy = el.coords.y + el.coords.h / 2;
             window.performTap(cx, cy, img.naturalWidth, img.naturalHeight);
         } else {
-            // Haritada tıklandığında, element verisini gönder (içinde coords var)
             window.highlightElement(index, true);
-            findAndHighlightXMLNode(el);
+            if (el.coords) findAndHighlightXMLNode(el);
+            else window.showToast("Bilgi", "Koordinat verisi eksik", 'info');
         }
     };
     box.dataset.x = el.coords.x; box.dataset.y = el.coords.y; box.dataset.w = el.coords.w; box.dataset.h = el.coords.h;
@@ -718,7 +754,8 @@ window.verifyLocatorByIndex = async function(e, index, btn) {
     const original = btn.innerHTML;
     btn.innerHTML = `<div class="loader"></div>`;
     try {
-        const data = await apiCall('/verify', { method: 'POST', body: JSON.stringify({ locator: item.locator }) });
+        const result = await apiCall('/api/verify', { method: 'POST', body: JSON.stringify({ locator: item.locator }) });
+        const data = result.data || result;
         if (data.valid) { btn.innerHTML = `<span class="text-emerald-500 font-bold text-sm">✓</span>`; window.showToast("Verified", `Count: ${data.count}`, 'success'); }
         else { btn.innerHTML = `<span class="text-red-500 font-bold text-sm">✕</span>`; window.showToast("Failed", `Found: ${data.count}`, 'error'); }
     } catch (e) { btn.innerHTML = `<span class="text-yellow-500 font-bold text-sm">!</span>`; handleApiError(e, 'Verify'); }
@@ -736,4 +773,49 @@ window.copyDataByIndex = function(e, index, mode) {
     } else if (mode === 'Variable') txt = item.variable;
     else txt = item.locator;
     navigator.clipboard.writeText(txt).then(() => window.showToast("Copied", mode, 'success'));
+}
+
+window.toggleRecordMode = function() {
+    const isRecording = appState.toggleRecording();
+    const btn = document.getElementById('recordBtn');
+
+    if (isRecording) {
+        btn.classList.add('bg-red-600', 'text-white', 'animate-pulse');
+        btn.classList.remove('text-gray-400');
+        window.showToast("Recording Started", "Actions will be saved", "info");
+    } else {
+        btn.classList.remove('bg-red-600', 'text-white', 'animate-pulse');
+        btn.classList.add('text-gray-400');
+        window.showToast("Recording Stopped", `${appState.get('recorder.steps').length} steps captured`, "success");
+        window.exportRecording(); // Kayıt bitince otomatik kod üretip göster
+    }
+}
+
+window.exportRecording = function() {
+    const steps = appState.get('recorder.steps');
+    if (steps.length === 0) return;
+
+    let code = "*** Test Cases ***\nRecorded Test Scenario\n";
+
+    steps.forEach(step => {
+        if (step.type === 'element_click') {
+            // Robot Framework Formatı
+            code += `    Click Element    ${step.locator}\n`;
+        } else if (step.type === 'coordinate_tap') {
+            code += `    Click At Coordinates    ${step.x}    ${step.y}\n`;
+        } else if (step.type === 'scroll') {
+            code += `    Swipe    ${step.direction}\n`;
+        } else if (step.type === 'back') {
+            code += `    Go Back\n`;
+        }
+    });
+
+    // Konsola bas veya panoya kopyala
+    console.log(code);
+    navigator.clipboard.writeText(code).then(() => {
+        window.showToast("Exported", "Test script copied to clipboard", "success");
+    });
+
+    // İsterseniz burada bir Modal açıp kodu gösterebilirsiniz.
+    alert("Test Script Generated (Copied to Clipboard):\n\n" + code);
 }

@@ -114,6 +114,10 @@ class DriverManager:
                     pass
             self.drivers = {}
 
+    def quit_all(self):
+        """Quit all active drivers"""
+        self.quit_driver()  # Calls with no platform = quit all
+
     def get_window_size(self):
         driver = self.get_driver()
         if driver:
