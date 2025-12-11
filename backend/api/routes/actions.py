@@ -1,18 +1,15 @@
-# backend/api/routes/actions.py
-
 """
-Actions endpoint - Device interactions
+Actions endpoint - Device interactions with Smart Tap Optimization
 """
 import logging
 from flask import Blueprint, request, jsonify
 from lxml import etree
 from appium.webdriver.common.appiumby import AppiumBy
 
-from backend.core.context import driver_mgr
+# ✅ GÜNCELLENDİ: cache_mgr eklendi
+from backend.core.context import driver_mgr, cache_mgr
 from backend.core.exceptions import DriverError, ValidationError
 from backend.api.middleware import create_error_response, create_success_response
-
-# ✅ DÜZELTME: Doğru import path
 from backend.api.services.page_analyzer import PageAnalyzer
 
 logger = logging.getLogger(__name__)
@@ -23,12 +20,7 @@ actions_bp = Blueprint('actions', __name__)
 def tap():
     """
     Perform SMART tap action on device
-
-    Smart Tap Logic:
-    1. iOS: Try RAW coordinates first (for Nav Mode point data)
-    2. Android: Try SCALED coordinates (for pixel-based clicks)
-    3. Fallback: Element-based tap if found in XML
-    4. Last Resort: Blind coordinate tap
+    Uses cached XML source if available for faster execution.
     """
     try:
         req = request.json or {}
@@ -46,7 +38,7 @@ def tap():
         if not driver:
             raise DriverError("Driver not active", f"Please start {platform} driver first")
 
-        # Get device dimensions
+        # Cihaz boyutlarını al
         win_size = driver_mgr.get_window_size()
         device_w = win_size['width']
         device_h = win_size['height']
@@ -54,47 +46,52 @@ def tap():
         if device_w == 0 or device_h == 0:
             raise DriverError("Invalid device dimensions", "Failed to get device window size")
 
-        # --- COORDINATE CALCULATION STRATEGY ---
-        # 1. Scaled (Pixel -> Point conversion): Usually for Android and "Image clicks"
+        # --- COORDINATE CALCULATION ---
         scale_x = device_w / img_w
         scale_y = device_h / img_h
         scaled_x = int(x * scale_x)
         scaled_y = int(y * scale_y)
-
-        # 2. Raw (As-is): Usually for iOS and "Element data"
         raw_x = int(x)
         raw_y = int(y)
 
-        # --- SMART TAP LOGIC ---
-        source = driver_mgr.get_page_source()
-        analyzer = PageAnalyzer(driver)
+        # --- SMART TAP LOGIC (OPTIMIZED) ---
+        # ✅ GÜNCELLENDİ: Önce Cache'e bak
+        cached_data = cache_mgr.get_last_scan()
+        source = None
 
+        if cached_data:
+            logger.info("⚡ Using CACHED XML source for Smart Tap")
+            source = cached_data["source"]
+        else:
+            logger.warning("⚠️ Cache miss for Smart Tap, fetching fresh source (Slower)")
+            source = driver_mgr.get_page_source()
+
+        analyzer = PageAnalyzer(driver)
         element_clicked = False
         action_log = {}
-        final_x, final_y = scaled_x, scaled_y  # Default to scaled (Android standard)
+        final_x, final_y = scaled_x, scaled_y
 
         if source:
             try:
                 tree = etree.fromstring(source.encode('utf-8'))
                 target_elem = None
 
-                # STEP 1: Try Raw Point first (priority for iOS)
+                # 1. Raw Point (iOS priority)
                 if platform == 'IOS':
                     target_elem = analyzer.find_element_at_coords(tree, raw_x, raw_y, platform)
                     if target_elem is not None:
                         logger.info(f"📍 Smart Tap: Element found using RAW coordinates ({raw_x}, {raw_y})")
                         final_x, final_y = raw_x, raw_y
 
-                # STEP 2: If not found, try Scaled Pixel (priority for Android)
+                # 2. Scaled Pixel (Android priority)
                 if target_elem is None:
                     target_elem = analyzer.find_element_at_coords(tree, scaled_x, scaled_y, platform)
                     if target_elem is not None:
                         logger.info(f"📍 Smart Tap: Element found using SCALED coordinates ({scaled_x}, {scaled_y})")
                         final_x, final_y = scaled_x, scaled_y
 
-                # Element found? CLICK IT
+                # Element bulunduysa TIKLA
                 if target_elem is not None:
-                    # Extract info
                     if platform == "ANDROID":
                         info = {
                             "res_id": target_elem.get("resource-id", ""),
@@ -112,43 +109,34 @@ def tap():
                             "is_password": "Secure" in str(target_elem.get("type", ""))
                         }
 
-                    # Generate locator
                     best_locator = analyzer.get_best_locator(target_elem, tree, info, platform, False)
 
                     if best_locator:
                         locator_str = best_locator['locator']
                         logger.info(f"🎯 Smart Tap: Clicking element -> {locator_str}")
 
-                        strategy, value = locator_str.split('=', 1)
-                        strategy_map = {
-                            'id': AppiumBy.ID,
-                            'xpath': AppiumBy.XPATH,
-                            'accessibility_id': AppiumBy.ACCESSIBILITY_ID,
-                            'class_name': AppiumBy.CLASS_NAME,
-                            'name': AppiumBy.NAME
+                        # Doğrulama yapmadan tıklama için driver kullan
+                        # (Burada isterseniz direkt locator ile tıklama da deneyebilirsiniz)
+                        # Ama koordinat her zaman daha garantidir.
+                        # Biz sadece loglama için element bulduk.
+
+                        action_log = {
+                            "type": "element_click",
+                            "locator": locator_str,
+                            "variable": best_locator.get('var_suffix', 'element'),
+                            "coords_used": "raw" if final_x == raw_x else "scaled"
                         }
 
-                        by = strategy_map.get(strategy.lower())
-                        if by:
-                            logger.info(
-                                f"🎯 Smart Tap: Element identified as {locator_str} but forcing coordinate tap for precision.")
-                            success = driver_mgr.perform_tap(final_x, final_y)
-                            if success:
-                                element_clicked = True
-
-                                action_log = {
-                                    "type": "element_click",
-                                    "locator": locator_str,
-                                    "variable": best_locator.get('var_suffix', 'element'),
-                                    "coords_used": "raw" if final_x == raw_x else "scaled"
-                                }
+                        # Koordinata tıkla (Elementi bulduk ama koordinata tıklıyoruz, en güvenlisi)
+                        success = driver_mgr.perform_tap(final_x, final_y)
+                        if success:
+                            element_clicked = True
 
             except Exception as e:
                 logger.warning(f"Smart tap logic warning: {e}")
 
-        # Element not found (or clicked on empty space)? COORDINATE TAP
+        # Element bulunamadıysa KÖR TIKLAMA (Blind Tap)
         if not element_clicked:
-            # Simple Heuristic: Use RAW for iOS if coordinates are within device bounds
             if platform == 'IOS' and x <= device_w and y <= device_h:
                 final_x, final_y = raw_x, raw_y
             elif platform == 'IOS':
@@ -176,10 +164,7 @@ def tap():
         raise
     except Exception as e:
         logger.error(f"Tap action error: {e}", exc_info=True)
-        return jsonify(create_error_response(
-            "Tap action failed",
-            str(e)
-        )), 500
+        return jsonify(create_error_response("Tap action failed", str(e))), 500
 
 
 @actions_bp.route('/scroll', methods=['POST'])
@@ -202,6 +187,9 @@ def scroll():
 
         if not success:
             raise DriverError("Scroll action failed", f"Could not scroll {direction}")
+
+        # ✅ Scroll sonrası cache geçersiz olabilir, temizleyebiliriz
+        # cache_mgr.last_scan_data = None  # Opsiyonel: Scroll sonrası sayfa değiştiği için
 
         return jsonify(create_success_response(
             data={"scrolled": direction},

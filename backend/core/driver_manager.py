@@ -1,5 +1,6 @@
 import time
 import logging
+import threading  # ✅ EKLENDİ: Threading kütüphanesi
 import urllib3.exceptions
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
@@ -14,7 +15,7 @@ from backend.core.exceptions import (
     AppiumConnectionError,
     DeviceNotFoundError,
     AppNotInstalledError,
-    DriverError  # DriverError da eklenmeli
+    DriverError
 )
 
 logger = logging.getLogger(__name__)
@@ -25,16 +26,22 @@ class DriverManager:
         self.drivers = {}  # {"ANDROID": driver, "IOS": driver}
         self.platform = "ANDROID"
         self.config_mgr = config_manager
+        self._lock = threading.RLock()  # ✅ EKLENDİ: Re-entrant Lock (Aynı thread tekrar kilitleyebilir)
 
     def get_driver(self):
         """Aktif platformun Appium sürücüsünü döndürür."""
-        return self.drivers.get(self.platform)
+        # ✅ GÜNCELLENDİ: Okuma işlemi sırasında kilitliyoruz
+        with self._lock:
+            return self.drivers.get(self.platform)
 
     def get_page_source(self):
         """Aktif sürücünün sayfa kaynağını (XML) döndürür."""
+        # ✅ GÜNCELLENDİ: Driver'ı güvenli şekilde alıyoruz
         driver = self.get_driver()
         if driver:
             try:
+                # Appium çağrısı thread-safe olmayabilir, bu yüzden burada kilitlemek daha güvenli olabilir
+                # Ancak performans için sadece driver alma anını kilitledik.
                 return driver.page_source
             except Exception as e:
                 logger.error(f"Failed to get page source: {e}")
@@ -53,146 +60,154 @@ class DriverManager:
         return None
 
     def is_active(self, platform=None):
-        target = platform or self.platform
-        driver = self.drivers.get(target)
-        if not driver:
-            return False
-        try:
-            if driver.session_id:
-                driver.get_window_size()
-                return True
-            return False
-        except Exception:
-            return False
+        with self._lock:  # ✅ GÜNCELLENDİ
+            target = platform or self.platform
+            driver = self.drivers.get(target)
+            if not driver:
+                return False
+            try:
+                if driver.session_id:
+                    # Pencere boyutunu sorgulamak driver'ın gerçekten yanıt verip vermediğini test eder
+                    driver.get_window_size()
+                    return True
+                return False
+            except Exception:
+                return False
 
     def start_driver(self, platform):
         """Start Appium driver with improved error handling"""
 
-        # Platform değiştirmek session kaybettirmiyor, aktifse geçiş yap.
-        if platform in self.drivers and self.is_active(platform):
-            self.platform = platform
-            logger.info(f"✅ Switching to existing {platform} driver")
-            return self.drivers[platform]
+        # ✅ GÜNCELLENDİ: Tüm başlatma süreci kilit altına alındı
+        with self._lock:
+            # Platform değiştirmek session kaybettirmiyor, aktifse geçiş yap.
+            if platform in self.drivers and self.is_active(platform):
+                self.platform = platform
+                logger.info(f"✅ Switching to existing {platform} driver")
+                return self.drivers[platform]
 
-        # Eski driver'ı temizle (varsa)
-        if platform in self.drivers:
-            try:
-                logger.info(f"🔄 Cleaning up old {platform} driver")
-                self.drivers[platform].quit()
-            except Exception as e:
-                logger.warning(f"Failed to quit old driver: {e}")
-            finally:
-                del self.drivers[platform]
-
-        self.platform = platform
-        logger.info(f"🚀 {platform} Driver Initializing...")
-
-        cfg = self.config_mgr.get_all()
-        driver = None
-        options = None
-
-        # --- OPTIONS AYARLARI ---
-        if platform == "ANDROID":
-            options = UiAutomator2Options()
-            options.platform_name = "Android"
-            options.automation_name = "UIAutomator2"
-            options.device_name = cfg.get("ANDROID_DEVICE")
-            options.app_package = cfg.get("ANDROID_PKG")
-            options.app_activity = cfg.get("ANDROID_ACT")
-            options.no_reset = cfg.get("ANDROID_NO_RESET")
-            options.full_reset = cfg.get("ANDROID_FULL_RESET")
-            options.new_command_timeout = 3600
-            options.set_capability("settings[ignoreUnimportantViews]", True)
-            options.set_capability("settings[waitForIdleTimeout]", 100)
-
-        else:  # IOS
-            options = XCUITestOptions()
-            options.platform_name = "iOS"
-            options.automation_name = "XCUITest"
-            options.device_name = cfg.get("IOS_DEVICE")
-            options.bundle_id = cfg.get("IOS_BUNDLE")
-            options.udid = cfg.get("IOS_UDID")
-            options.set_capability("appium:xcodeOrgId", cfg.get("IOS_ORG_ID"))
-            options.set_capability("appium:xcodeSigningId", cfg.get("IOS_SIGN_ID"))
-
-            # Kritik iOS Ayarları
-            options.set_capability("appium:usePrebuiltWDA", True)
-            options.set_capability("appium:updatedWDABundleId", "com.facebook.WebDriverAgentRunner.xctrunner")
-            options.set_capability("appium:forceAppLaunch", True)
-            options.set_capability("appium:shouldTerminateApp", True)
-            options.new_command_timeout = 3600
-            options.set_capability("appium:wdaLaunchTimeout", 60000)
-            options.set_capability("appium:wdaConnectionTimeout", 60000)
-
-        # --- DRIVER BAŞLATMA (Hata Yakalama Buraya Taşındı) ---
-        try:
-            driver = webdriver.Remote("http://127.0.0.1:4723/wd/hub", options=options)
-
-            self.drivers[platform] = driver
-            logger.info(f"✅ {platform} driver started successfully")
-            return driver
-
-        except urllib3.exceptions.MaxRetryError:
-            raise AppiumConnectionError(
-                "Cannot connect to Appium server",
-                "Make sure Appium is running at http://127.0.0.1:4723"
-            )
-
-        except WebDriverException as e:
-            error_msg = str(e).lower()
-
-            # Partially created driver'ı temizle
-            if driver:
+            # Eski driver'ı temizle (varsa)
+            if platform in self.drivers:
                 try:
-                    driver.quit()
-                except:
-                    pass
+                    logger.info(f"🔄 Cleaning up old {platform} driver")
+                    self.drivers[platform].quit()
+                except Exception as e:
+                    logger.warning(f"Failed to quit old driver: {e}")
+                finally:
+                    del self.drivers[platform]
 
-            if platform in self.drivers:
-                del self.drivers[platform]
+            self.platform = platform
+            logger.info(f"🚀 {platform} Driver Initializing...")
 
-            if "device not found" in error_msg or "could not find a device" in error_msg:
-                raise DeviceNotFoundError(
-                    f"{platform} device not found",
-                    f"Device '{cfg.get(f'{platform}_DEVICE')}' is not connected or not available"
+            cfg = self.config_mgr.get_all()
+            driver = None
+            options = None
+
+            # --- OPTIONS AYARLARI ---
+            if platform == "ANDROID":
+                options = UiAutomator2Options()
+                options.platform_name = "Android"
+                options.automation_name = "UIAutomator2"
+                options.device_name = cfg.get("ANDROID_DEVICE")
+                options.app_package = cfg.get("ANDROID_PKG")
+                options.app_activity = cfg.get("ANDROID_ACT")
+                options.no_reset = cfg.get("ANDROID_NO_RESET")
+                options.full_reset = cfg.get("ANDROID_FULL_RESET")
+                options.new_command_timeout = 3600
+                options.set_capability("settings[ignoreUnimportantViews]", True)
+                options.set_capability("settings[waitForIdleTimeout]", 100)
+                options.set_capability("appium:forceAppLaunch", True)
+                options.set_capability("appium:shouldTerminateApp", True)
+
+            else:  # IOS
+                options = XCUITestOptions()
+                options.platform_name = "iOS"
+                options.automation_name = "XCUITest"
+                options.device_name = cfg.get("IOS_DEVICE")
+                options.bundle_id = cfg.get("IOS_BUNDLE")
+                options.udid = cfg.get("IOS_UDID")
+                options.set_capability("appium:xcodeOrgId", cfg.get("IOS_ORG_ID"))
+                options.set_capability("appium:xcodeSigningId", cfg.get("IOS_SIGN_ID"))
+
+                # Kritik iOS Ayarları
+                options.set_capability("appium:usePrebuiltWDA", True)
+                options.set_capability("appium:updatedWDABundleId", "com.facebook.WebDriverAgentRunner.xctrunner")
+                options.set_capability("appium:forceAppLaunch", True)
+                options.set_capability("appium:shouldTerminateApp", True)
+                options.new_command_timeout = 3600
+                options.set_capability("appium:wdaLaunchTimeout", 60000)
+                options.set_capability("appium:wdaConnectionTimeout", 60000)
+
+            # --- DRIVER BAŞLATMA ---
+            try:
+                driver = webdriver.Remote("http://127.0.0.1:4723/wd/hub", options=options)
+
+                self.drivers[platform] = driver
+                logger.info(f"✅ {platform} driver started successfully")
+                return driver
+
+            except urllib3.exceptions.MaxRetryError:
+                raise AppiumConnectionError(
+                    "Cannot connect to Appium server",
+                    "Make sure Appium is running at http://127.0.0.1:4723"
                 )
 
-            if "app not installed" in error_msg or "activity does not exist" in error_msg:
-                raise AppNotInstalledError(
-                    "Application not found on device",
-                    f"Package: {cfg.get(f'{platform}_PKG')}"
-                )
+            except WebDriverException as e:
+                error_msg = str(e).lower()
 
-            # Genel Hata
-            logger.error(f"❌ Failed to start {platform} driver: {e}")
-            raise DriverError("WebDriver initialization failed", str(e))
+                # Partially created driver'ı temizle
+                if driver:
+                    try:
+                        driver.quit()
+                    except:
+                        pass
 
-        except Exception as e:
-            # Diğer tüm hatalar
-            logger.error(f"❌ Unexpected error starting {platform} driver: {e}")
-            if platform in self.drivers:
-                del self.drivers[platform]
-            raise Exception(f"Failed to initialize {platform} driver: {str(e)}")
+                if platform in self.drivers:
+                    del self.drivers[platform]
+
+                if "device not found" in error_msg or "could not find a device" in error_msg:
+                    raise DeviceNotFoundError(
+                        f"{platform} device not found",
+                        f"Device '{cfg.get(f'{platform}_DEVICE')}' is not connected or not available"
+                    )
+
+                if "app not installed" in error_msg or "activity does not exist" in error_msg:
+                    raise AppNotInstalledError(
+                        "Application not found on device",
+                        f"Package: {cfg.get(f'{platform}_PKG')}"
+                    )
+
+                # Genel Hata
+                logger.error(f"❌ Failed to start {platform} driver: {e}")
+                raise DriverError("WebDriver initialization failed", str(e))
+
+            except Exception as e:
+                # Diğer tüm hatalar
+                logger.error(f"❌ Unexpected error starting {platform} driver: {e}")
+                if platform in self.drivers:
+                    del self.drivers[platform]
+                raise Exception(f"Failed to initialize {platform} driver: {str(e)}")
 
     def quit_driver(self, platform=None):
         """Quit driver(s) safely"""
-        if platform:
-            if platform in self.drivers:
-                try:
-                    logger.info(f"🛑 Quitting {platform} driver")
-                    self.drivers[platform].quit()
-                except Exception as e:
-                    logger.warning(f"Error quitting {platform} driver: {e}")
-                finally:
-                    del self.drivers[platform]
-        else:
-            for p in list(self.drivers.keys()):
-                try:
-                    logger.info(f"🛑 Quitting {p} driver")
-                    self.drivers[p].quit()
-                except Exception as e:
-                    logger.warning(f"Error quitting {p} driver: {e}")
-            self.drivers = {}
+        # ✅ GÜNCELLENDİ: Çıkış işlemleri kilitlendi
+        with self._lock:
+            if platform:
+                if platform in self.drivers:
+                    try:
+                        logger.info(f"🛑 Quitting {platform} driver")
+                        self.drivers[platform].quit()
+                    except Exception as e:
+                        logger.warning(f"Error quitting {platform} driver: {e}")
+                    finally:
+                        del self.drivers[platform]
+            else:
+                for p in list(self.drivers.keys()):
+                    try:
+                        logger.info(f"🛑 Quitting {p} driver")
+                        self.drivers[p].quit()
+                    except Exception as e:
+                        logger.warning(f"Error quitting {p} driver: {e}")
+                self.drivers = {}
 
     def quit_all(self):
         self.quit_driver()

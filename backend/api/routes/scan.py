@@ -1,79 +1,21 @@
 """
-Scan endpoint - Screen analysis with improved caching
+Scan endpoint - Screen analysis with centralized caching
 """
 import concurrent.futures
 import hashlib
 import logging
 import time
-import sys
-from collections import OrderedDict
 from flask import Blueprint, request, jsonify
 
-from backend.core.context import driver_mgr, config_mgr
+# ✅ GÜNCELLENDİ: cache_mgr eklendi
+from backend.core.context import driver_mgr, config_mgr, cache_mgr
 from backend.core.exceptions import DriverError, ParseError, ValidationError
-from backend.core.constants import VALID_PLATFORMS, MAX_CACHE_SIZE, SCREENSHOT_CACHE_TTL
+from backend.core.constants import VALID_PLATFORMS, SCREENSHOT_CACHE_TTL
 from backend.api.services.page_analyzer import PageAnalyzer
 from backend.api.middleware import create_error_response, create_success_response
 
 logger = logging.getLogger(__name__)
 scan_bp = Blueprint('scan', __name__)
-
-class ScreenshotCache:
-    def __init__(self, max_size_mb=50):
-        self.cache = OrderedDict()
-        self.max_size = max_size_mb * 1024 * 1024
-        self.total_size = 0
-
-    def add(self, key, data, timestamp):
-        size = sys.getsizeof(data)
-
-        # Memory limit kontrolü
-        while self.total_size + size > self.max_size and self.cache:
-            removed_key, (removed_data, _, removed_size) = self.cache.popitem(last=False)
-            self.total_size -= removed_size
-            logger.debug(f"Cache eviction: {removed_key[:8]}... ({removed_size} bytes)")
-
-        self.cache[key] = (data, timestamp, size)
-        self.total_size += size
-
-    def get(self, key):
-        """Get cached item"""
-        return self.cache.get(key)
-
-    def remove(self, key):
-        """Remove item specifically"""
-        if key in self.cache:
-            _, _, size = self.cache.pop(key)
-            self.total_size -= size
-
-    def items(self):
-        """Expose dictionary items"""
-        return self.cache.items()
-
-    def __contains__(self, key):
-        return key in self.cache
-
-# Global cache instance
-screenshot_cache = ScreenshotCache()
-
-def cleanup_expired_cache():
-    """Remove expired cache entries based on TTL"""
-    current_time = time.time()
-    expired_keys = []
-
-    # Düzeltme: 3 elemanlı tuple unpacking (data, timestamp, size)
-    for key, (_, timestamp, _) in screenshot_cache.items():
-        if current_time - timestamp > SCREENSHOT_CACHE_TTL:
-            expired_keys.append(key)
-
-    for key in expired_keys:
-        # Düzeltme: del yerine remove metodu
-        screenshot_cache.remove(key)
-        logger.debug(f"Cache cleanup: Removed expired entry {key[:8]}...")
-
-    if expired_keys:
-        logger.info(f"🧹 Cache cleanup: Removed {len(expired_keys)} expired entries")
-
 
 @scan_bp.route('/scan', methods=['POST'])
 def scan():
@@ -96,23 +38,29 @@ def scan():
             raise ValidationError(f"Invalid {platform} configuration", error_msg)
 
         driver = driver_mgr.start_driver(platform)
-        source = driver_mgr.get_page_source()
 
+        # 1. Kaynağı al
+        source = driver_mgr.get_page_source()
         if not source:
             raise DriverError("Failed to get page source", "Device might be locked or app is not running")
 
-        cleanup_expired_cache()
-
         source_hash = hashlib.md5(source.encode()).hexdigest()
+        optimized_image = None
+        win_size = None
 
-        # Düzeltme: Cache kontrolü
-        if source_hash in screenshot_cache:
-            cached_data = screenshot_cache.get(source_hash)
-            if cached_data:
-                # Düzeltme: 3 elemanlı tuple unpacking
-                optimized_image, _, _ = cached_data
-                logger.info("📸 Using cached screenshot")
+        # 2. Önbellek kontrolü (Merkezi Cache)
+        # ✅ GÜNCELLENDİ: cache_mgr kullanılıyor
+        cached_data = cache_mgr.get_scan(source_hash)
+
+        if cached_data:
+            optimized_image = cached_data["image"]
+            win_size = cached_data["window"]
+            logger.info("📸 Using cached screenshot (Central Cache)")
+
+            # Son taramayı güncelle (Tap işlemi için kritik)
+            cache_mgr.last_scan_data = cached_data
         else:
+            # Cache yoksa yeni görüntü al
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future_shot = executor.submit(driver_mgr.take_screenshot)
                 future_win = executor.submit(driver_mgr.get_window_size)
@@ -123,22 +71,17 @@ def scan():
 
                 win_size = future_win.result()
 
+            if win_size['width'] == 0 or win_size['height'] == 0:
+                raise DriverError("Failed to get window size", "Device might be in an invalid state")
+
             analyzer = PageAnalyzer(driver)
             optimized_image = analyzer.optimize_image(raw_screenshot)
 
-            current_time = time.time()
-
-            # Düzeltme: __setitem__ yerine add metodu kullanıldı
-            # Ayrıca eski manuel boyut kontrolü (len > MAX_CACHE_SIZE) kaldırıldı,
-            # çünkü ScreenshotCache.add bunu zaten yapıyor.
-            screenshot_cache.add(source_hash, optimized_image, current_time)
-
+            # ✅ GÜNCELLENDİ: Sonucu merkezi cache'e kaydet
+            cache_mgr.save_scan(source_hash, optimized_image, source, win_size)
             logger.info(f"📸 Screenshot captured and cached (TTL: {SCREENSHOT_CACHE_TTL}s)")
 
-        win_size = driver_mgr.get_window_size()
-        if win_size['width'] == 0 or win_size['height'] == 0:
-            raise DriverError("Failed to get window size", "Device might be in an invalid state")
-
+        # 3. Analiz (XML Parse)
         analyzer = PageAnalyzer(driver)
         result = analyzer.analyze(source, platform, verify, prefix, win_size)
 
