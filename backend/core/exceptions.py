@@ -49,3 +49,15 @@ class ConfigurationError(RedPatherError):
 class ValidationError(RedPatherError):
     """Data validation errors"""
     pass
+
+class AppiumConnectionError(DriverError):
+    """Appium server ulaşılamıyor"""
+    pass
+
+class DeviceNotFoundError(DriverError):
+    """Cihaz bulunamadı"""
+    pass
+
+class AppNotInstalledError(DriverError):
+    """Uygulama cihazda yüklü değil"""
+    pass

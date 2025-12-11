@@ -266,3 +266,4 @@ class DriverManager:
         except Exception as e:
             logger.warning(f"Hide keyboard failed: {e}")
             return False
+

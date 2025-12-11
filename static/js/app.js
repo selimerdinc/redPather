@@ -19,10 +19,15 @@ const API_TIMEOUT = 30000;
 const BOUNDS_TOLERANCE = 15;
 
 window.addEventListener('DOMContentLoaded', () => {
-    window.loadConfig();
-    initializeEventListeners();
-    setupImageResizeObserver();
-    logAppStart();
+    // State'i kullan
+    appState.subscribe('ui.currentHoverIndex', (newIdx, oldIdx) => {
+        if (oldIdx !== -1) clearHighlight(oldIdx);
+        if (newIdx !== -1) highlightElement(newIdx);
+    });
+
+    appState.subscribe('elements', (elements) => {
+        renderElementList(elements);
+    });
 });
 
 function logAppStart() {
@@ -235,6 +240,29 @@ window.showToast = function(title, message, type = 'success') {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 400);
     }, TOAST_DURATION);
+}
+
+async function scanScreen() {
+    const progressSteps = [
+        { text: "Connecting to device...", duration: 500 },
+        { text: "Capturing screenshot...", duration: 1000 },
+        { text: "Analyzing elements...", duration: 2000 },
+        { text: "Generating locators...", duration: 1500 }
+    ];
+
+    let currentStep = 0;
+    const interval = setInterval(() => {
+        if (currentStep < progressSteps.length) {
+            updateLoadingText(progressSteps[currentStep].text);
+            currentStep++;
+        }
+    }, 800);
+
+    try {
+        const result = await apiCall('/api/scan', {...});
+        clearInterval(interval);
+        // ...
+    }
 }
 
 window.scanScreen = async function() {

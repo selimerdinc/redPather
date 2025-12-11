@@ -165,18 +165,15 @@ class PageAnalyzer:
         return "view"
 
     def safe_xpath_val(self, val: str) -> str:
-        """
-        Escape value for safe XPath usage
+        """XPath 2.0 concat metodu ile escape"""
+        if "'" not in val:
+            return f"'{val}'"
+        if '"' not in val:
+            return f'"{val}'
 
-        Args:
-            val: Value to escape
-
-        Returns:
-            str: Escaped value with quotes
-        """
-        if "'" in val:
-            return f'"{val}"'
-        return f"'{val}'"
+        # Her iki quote var, concat kullan
+        parts = val.split("'")
+        return "concat(" + ", \"'\", ".join(f"'{part}'" for part in parts) + ")"
 
     def parse_bounds_android(self, bounds_str: Optional[str]) -> Optional[Dict[str, int]]:
         """
@@ -810,7 +807,8 @@ class PageAnalyzer:
                     b = self.parse_bounds_ios(elem)
 
                 # Eğer element ekranın %90'ından fazlasını kaplıyorsa LİSTEYE EKLEME
-                if b and b['area'] > (area_total * 0.90):
+                if b and b['area'] > (area_total * AnalyzerConstants.MAX_ELEMENT_SCREEN_RATIO):
+                    logger.debug(f"Skipping fullscreen element (area: {b['area']})")
                     continue
                 # --- FİLTRELEME BİTİŞ ---
 
