@@ -53,9 +53,23 @@ export const TOAST_ICONS = {
 document.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey) {
         switch(e.code) {
-            case 'KeyS': e.preventDefault(); window.scanScreen(); break;
-            case 'KeyC': e.preventDefault(); window.copyAllVariables(); break;
-            case 'KeyN': e.preventDefault(); toggleNavMode(); break;
+            case 'KeyS':
+                e.preventDefault();
+                window.scanScreen();
+                break;
+            case 'KeyC':
+                e.preventDefault();
+                window.copyAllVariables();
+                break;
+            case 'KeyN':
+                e.preventDefault();
+                // ✅ Checkbox'u programatik olarak tetikle
+                const navCheckbox = document.getElementById('navMode');
+                if (navCheckbox) {
+                    navCheckbox.checked = !navCheckbox.checked;
+                    window.toggleNavMode(navCheckbox);
+                }
+                break;
         }
     }
 });

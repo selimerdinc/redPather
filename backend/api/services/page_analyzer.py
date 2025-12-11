@@ -25,6 +25,7 @@ class AnalyzerConstants:
     MAX_TITLE_LENGTH = 30
     MIN_TITLE_LENGTH = 2
     MAX_TEXT_WORDS = 10
+    MAX_ELEMENT_SCREEN_RATIO = 0.90
 
     # Image optimization
     IMAGE_QUALITY = 60
