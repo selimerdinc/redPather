@@ -1,11 +1,21 @@
 import time
+import logging
+import urllib3.exceptions
 from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.options.ios import XCUITestOptions
 from selenium.webdriver.common.actions.action_builder import ActionBuilder
 from selenium.webdriver.common.actions.pointer_input import PointerInput
 from selenium.webdriver.common.actions import interaction
-import logging
+from selenium.common.exceptions import WebDriverException
+
+# Hata sınıflarını import et
+from backend.core.exceptions import (
+    AppiumConnectionError,
+    DeviceNotFoundError,
+    AppNotInstalledError,
+    DriverError  # DriverError da eklenmeli
+)
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +42,7 @@ class DriverManager:
         return None
 
     def take_screenshot(self):
-        """
-        Aktif sürücüden base64 formatında ekran görüntüsü alır.
-        """
+        """Aktif sürücüden base64 formatında ekran görüntüsü alır."""
         driver = self.get_driver()
         if driver:
             try:
@@ -58,9 +66,8 @@ class DriverManager:
             return False
 
     def start_driver(self, platform):
-        """
-        Start Appium driver with improved error handling
-        """
+        """Start Appium driver with improved error handling"""
+
         # Platform değiştirmek session kaybettirmiyor, aktifse geçiş yap.
         if platform in self.drivers and self.is_active(platform):
             self.platform = platform
@@ -82,49 +89,57 @@ class DriverManager:
 
         cfg = self.config_mgr.get_all()
         driver = None
+        options = None
 
+        # --- OPTIONS AYARLARI ---
+        if platform == "ANDROID":
+            options = UiAutomator2Options()
+            options.platform_name = "Android"
+            options.automation_name = "UIAutomator2"
+            options.device_name = cfg.get("ANDROID_DEVICE")
+            options.app_package = cfg.get("ANDROID_PKG")
+            options.app_activity = cfg.get("ANDROID_ACT")
+            options.no_reset = cfg.get("ANDROID_NO_RESET")
+            options.full_reset = cfg.get("ANDROID_FULL_RESET")
+            options.new_command_timeout = 3600
+            options.set_capability("settings[ignoreUnimportantViews]", True)
+            options.set_capability("settings[waitForIdleTimeout]", 100)
+
+        else:  # IOS
+            options = XCUITestOptions()
+            options.platform_name = "iOS"
+            options.automation_name = "XCUITest"
+            options.device_name = cfg.get("IOS_DEVICE")
+            options.bundle_id = cfg.get("IOS_BUNDLE")
+            options.udid = cfg.get("IOS_UDID")
+            options.set_capability("appium:xcodeOrgId", cfg.get("IOS_ORG_ID"))
+            options.set_capability("appium:xcodeSigningId", cfg.get("IOS_SIGN_ID"))
+
+            # Kritik iOS Ayarları
+            options.set_capability("appium:usePrebuiltWDA", True)
+            options.set_capability("appium:updatedWDABundleId", "com.facebook.WebDriverAgentRunner.xctrunner")
+            options.set_capability("appium:forceAppLaunch", True)
+            options.set_capability("appium:shouldTerminateApp", True)
+            options.new_command_timeout = 3600
+            options.set_capability("appium:wdaLaunchTimeout", 60000)
+            options.set_capability("appium:wdaConnectionTimeout", 60000)
+
+        # --- DRIVER BAŞLATMA (Hata Yakalama Buraya Taşındı) ---
         try:
-            if platform == "ANDROID":
-                options = UiAutomator2Options()
-                options.platform_name = "Android"
-                options.automation_name = "UIAutomator2"
-                options.device_name = cfg["ANDROID_DEVICE"]
-                options.app_package = cfg["ANDROID_PKG"]
-                options.app_activity = cfg["ANDROID_ACT"]
-                options.no_reset = cfg["ANDROID_NO_RESET"]
-                options.full_reset = cfg["ANDROID_FULL_RESET"]
-                options.new_command_timeout = 3600
-                options.set_capability("settings[ignoreUnimportantViews]", True)
-                options.set_capability("settings[waitForIdleTimeout]", 100)
-
-
-
-            else:
-                options = XCUITestOptions()
-                options.platform_name = "iOS"
-                options.automation_name = "XCUITest"
-                options.device_name = cfg["IOS_DEVICE"]
-                options.bundle_id = cfg["IOS_BUNDLE"]
-                options.udid = cfg["IOS_UDID"]
-                options.set_capability("appium:xcodeOrgId", cfg["IOS_ORG_ID"])
-                options.set_capability("appium:xcodeSigningId", cfg["IOS_SIGN_ID"])
-                options.set_capability("appium:usePrebuiltWDA", True)
-                options.set_capability("appium:updatedWDABundleId", "com.facebook.WebDriverAgentRunner.xctrunner")
-                options.set_capability("appium:forceAppLaunch", True)
-                options.set_capability("appium:shouldTerminateApp", True)
-                options.new_command_timeout = 3600
-                options.set_capability("appium:wdaLaunchTimeout", 60000)
-                options.set_capability("appium:wdaConnectionTimeout", 60000)
-
             driver = webdriver.Remote("http://127.0.0.1:4723/wd/hub", options=options)
 
             self.drivers[platform] = driver
             logger.info(f"✅ {platform} driver started successfully")
             return driver
 
-        except Exception as e:
-            # ✅ DÜZELTME: Hata durumunda cleanup
-            logger.error(f"❌ Failed to start {platform} driver: {e}")
+        except urllib3.exceptions.MaxRetryError:
+            raise AppiumConnectionError(
+                "Cannot connect to Appium server",
+                "Make sure Appium is running at http://127.0.0.1:4723"
+            )
+
+        except WebDriverException as e:
+            error_msg = str(e).lower()
 
             # Partially created driver'ı temizle
             if driver:
@@ -133,17 +148,34 @@ class DriverManager:
                 except:
                     pass
 
-            # drivers dict'den sil
             if platform in self.drivers:
                 del self.drivers[platform]
 
-            # Exception'ı yukarı fırlat
+            if "device not found" in error_msg or "could not find a device" in error_msg:
+                raise DeviceNotFoundError(
+                    f"{platform} device not found",
+                    f"Device '{cfg.get(f'{platform}_DEVICE')}' is not connected or not available"
+                )
+
+            if "app not installed" in error_msg or "activity does not exist" in error_msg:
+                raise AppNotInstalledError(
+                    "Application not found on device",
+                    f"Package: {cfg.get(f'{platform}_PKG')}"
+                )
+
+            # Genel Hata
+            logger.error(f"❌ Failed to start {platform} driver: {e}")
+            raise DriverError("WebDriver initialization failed", str(e))
+
+        except Exception as e:
+            # Diğer tüm hatalar
+            logger.error(f"❌ Unexpected error starting {platform} driver: {e}")
+            if platform in self.drivers:
+                del self.drivers[platform]
             raise Exception(f"Failed to initialize {platform} driver: {str(e)}")
 
     def quit_driver(self, platform=None):
-        """
-        Quit driver(s) safely
-        """
+        """Quit driver(s) safely"""
         if platform:
             if platform in self.drivers:
                 try:
@@ -154,7 +186,6 @@ class DriverManager:
                 finally:
                     del self.drivers[platform]
         else:
-            # Tüm driver'ları kapat
             for p in list(self.drivers.keys()):
                 try:
                     logger.info(f"🛑 Quitting {p} driver")
@@ -164,7 +195,6 @@ class DriverManager:
             self.drivers = {}
 
     def quit_all(self):
-        """Quit all active drivers"""
         self.quit_driver()
 
     def get_window_size(self):
@@ -266,4 +296,3 @@ class DriverManager:
         except Exception as e:
             logger.warning(f"Hide keyboard failed: {e}")
             return False
-

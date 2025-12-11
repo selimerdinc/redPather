@@ -4,6 +4,9 @@
 // =====================================================
 
 let allElementsData = [];
+// --- DEĞİŞİKLİK: Silinen elementlerin locator'larını tutacak küme ---
+let deletedLocators = new Set();
+// -------------------------------------------------------------------
 let currentHoverIndex = -1;
 let currentPlatform = "ANDROID";
 let navModeActive = false;
@@ -242,29 +245,6 @@ window.showToast = function(title, message, type = 'success') {
     }, TOAST_DURATION);
 }
 
-async function scanScreen() {
-    const progressSteps = [
-        { text: "Connecting to device...", duration: 500 },
-        { text: "Capturing screenshot...", duration: 1000 },
-        { text: "Analyzing elements...", duration: 2000 },
-        { text: "Generating locators...", duration: 1500 }
-    ];
-
-    let currentStep = 0;
-    const interval = setInterval(() => {
-        if (currentStep < progressSteps.length) {
-            updateLoadingText(progressSteps[currentStep].text);
-            currentStep++;
-        }
-    }, 800);
-
-    try {
-        const result = await apiCall('/api/scan', {...});
-        clearInterval(interval);
-        // ...
-    }
-}
-
 window.scanScreen = async function() {
     const btn = document.getElementById('scanBtn');
     const loading = document.getElementById('loading');
@@ -305,7 +285,7 @@ window.scanScreen = async function() {
     }
 }
 
-// ✅ EKSİK FONKSİYON: renderResult
+// ✅ RENDER RESULT (BLACKLIST FİLTRELEME EKLENDİ)
 window.renderResult = function(data) {
     const img = document.getElementById('screenshot');
     img.src = "data:image/png;base64," + data.image;
@@ -328,16 +308,20 @@ window.renderResult = function(data) {
             setTimeout(() => pageInput.style.color = 'white', 500);
         }
 
-        document.getElementById('element-count').innerText = `${data.elements.length}`;
+        // --- DEĞİŞİKLİK: SİLİNENLERİ FİLTRELE ---
+        const validElements = data.elements.filter(el => !deletedLocators.has(el.locator));
 
-        data.elements.forEach((el, index) => {
+        document.getElementById('element-count').innerText = `${validElements.length}`;
+
+        validElements.forEach((el, index) => {
             allElementsData.push({ ...el, index, isDeleted: false });
             window.createBox(el, index);
             window.createListItem(el, index);
         });
+        // ----------------------------------------
 
         parseXMLSource();
-        window.showToast("Success", `Found ${data.elements.length} elements`, 'success');
+        window.showToast("Success", `Found ${validElements.length} elements`, 'success');
     };
 }
 
@@ -898,6 +882,7 @@ window.showConfirmModal = function(newValue, onConfirm, onCancel) {
         container.appendChild(item);
     }
 
+    // ✅ REMOVE ELEMENT (BLACKLIST'E EKLEME)
     window.removeElement = function (e, index) {
         e.stopPropagation();
         window.clearSelection();
@@ -909,7 +894,15 @@ window.showConfirmModal = function(newValue, onConfirm, onCancel) {
         }
         if (box) box.remove();
         const data = allElementsData.find(el => el.index === index);
-        if (data) data.isDeleted = true;
+        if (data) {
+            data.isDeleted = true;
+
+            // --- DEĞİŞİKLİK: SİLİNEN LOCATOR'I KAYDET ---
+            if (data.locator) {
+                deletedLocators.add(data.locator);
+            }
+            // ------------------------------------------
+        }
         document.getElementById('element-count').innerText = allElementsData.filter(el => !el.isDeleted).length;
     }
 
@@ -1211,3 +1204,31 @@ class TestRecordedScenario:
         // İsterseniz burada bir Modal açıp kodu gösterebilirsiniz.
         alert("Test Script Generated (Copied to Clipboard):\n\n" + code);
     }
+
+    // static/js/app.js'e ekleyin
+
+function clearHighlight(index) {
+    const item = document.getElementById(`list-item-${index}`);
+    const box = document.getElementById(`box-${index}`);
+    const xmlNode = document.getElementById(`xml-node-${index}`);
+
+    if (item) item.classList.remove('active', 'flash');
+    if (box) box.classList.remove('active');
+    if (xmlNode) xmlNode.classList.remove('active');
+}
+
+function renderElementList(elements) {
+    const container = document.getElementById('elements-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    elements.forEach((el, index) => {
+        if (!el.isDeleted) {
+            window.createListItem(el, index);
+        }
+    });
+
+    document.getElementById('element-count').innerText =
+        elements.filter(el => !el.isDeleted).length;
+}
