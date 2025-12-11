@@ -18,8 +18,22 @@ scan_bp = Blueprint('scan', __name__)
 
 # ✅ DÜZELTME: Cache artık timestamp içeriyor
 # Format: {hash: (image_data, timestamp)}
-screenshot_cache = {}
+from collections import OrderedDict
+import sys
 
+
+class ScreenshotCache:
+    def __init__(self, max_size_mb=50):
+        self.cache = OrderedDict()
+        self.max_size = max_size_mb * 1024 * 1024
+
+    def add(self, key, data, timestamp):
+        size = sys.getsizeof(data)
+        while self._get_total_size() + size > self.max_size:
+            self.cache.popitem(last=False)  # FIFO
+        self.cache[key] = (data, timestamp, size)
+
+screenshot_cache = ScreenshotCache()
 
 def cleanup_expired_cache():
     """Remove expired cache entries based on TTL"""

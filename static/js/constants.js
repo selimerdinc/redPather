@@ -50,12 +50,12 @@ export const TOAST_ICONS = {
     warning: '⚠'
 };
 
-export const KEYBOARD_SHORTCUTS = {
-    SCAN: 'KeyS',
-    BACK: 'KeyB',
-    REFRESH: 'KeyR',
-    COPY_ALL: 'KeyC',
-    TOGGLE_NAV: 'KeyN',
-    ESCAPE: 'Escape',
-    ENTER: 'Enter'
-};
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey) {
+        switch(e.code) {
+            case 'KeyS': e.preventDefault(); window.scanScreen(); break;
+            case 'KeyC': e.preventDefault(); window.copyAllVariables(); break;
+            case 'KeyN': e.preventDefault(); toggleNavMode(); break;
+        }
+    }
+});
