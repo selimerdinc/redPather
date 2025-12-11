@@ -800,14 +800,21 @@ class PageAnalyzer:
             area_total = win_size['width'] * win_size['height']
 
             for idx, elem in enumerate(all_elements):
-                # Skip full-screen containers
+                # --- FİLTRELEME BAŞLANGIÇ ---
+                b = None
+
+                # Platforma göre boyutları hesapla
                 if platform == "ANDROID":
                     b = self.parse_bounds_android(elem.attrib.get("bounds"))
-                    if b and b['area'] > (area_total * 0.95):
-                        continue
+                else:  # IOS
+                    b = self.parse_bounds_ios(elem)
+
+                # Eğer element ekranın %90'ından fazlasını kaplıyorsa LİSTEYE EKLEME
+                if b and b['area'] > (area_total * 0.90):
+                    continue
+                # --- FİLTRELEME BİTİŞ ---
 
                 task_args.append((elem, tree, platform, should_verify, idx, detected_page_name))
-
             logger.info(f"Processing {len(task_args)} candidate elements")
 
             # Process elements (can be parallelized in future)

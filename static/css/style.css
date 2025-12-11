@@ -91,19 +91,22 @@ body.nav-mode .target-box:hover { border-color: #3b82f6; box-shadow: 0 0 15px rg
     cursor: pointer;
     font-size: 11px;
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    border-radius: 4px;
 }
 .xml-node:hover, .xml-node.active {
     background-color: rgba(239, 68, 68, 0.2); /* Vurgu Rengi */
     color: #e4e4e7;
 }
 .xml-node-toggle {
-    margin-right: 5px;
-    margin-left: 5px;
-    width: 15px;
-    transition: transform 0.2s;
-    flex-shrink: 0;
+    margin-right: 4px;
+    width: 14px;
+    display: inline-block;
+    text-align: center;
     color: #71717a;
+    flex-shrink: 0;
+    cursor: pointer;
 }
 .xml-node-toggle.collapsed {
     transform: rotate(-90deg);

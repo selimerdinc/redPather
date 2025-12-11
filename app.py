@@ -60,7 +60,8 @@ if __name__ == '__main__':
     logger.info("=" * 60)
 
     try:
-        app.run(debug=True, port=5000, host='0.0.0.0')
+        # ✅ DEĞİŞİKLİK: use_reloader=False parametresini ekleyin
+        app.run(debug=True, use_reloader=False, port=5000, host='0.0.0.0')
     except KeyboardInterrupt:
         logger.info("\n👋 Server stopped by user")
     except Exception as e:
