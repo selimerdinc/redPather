@@ -1,22 +1,41 @@
 """
-Scan endpoint - Screen analysis
+Scan endpoint - Screen analysis with improved caching
 """
 import concurrent.futures
 import hashlib
 import logging
+import time
 from flask import Blueprint, request, jsonify
 
 from backend.core.context import driver_mgr, config_mgr
 from backend.core.exceptions import DriverError, ParseError, ValidationError
-from backend.core.constants import VALID_PLATFORMS, MAX_CACHE_SIZE
-from backend.services.page_analyzer import PageAnalyzer
+from backend.core.constants import VALID_PLATFORMS, MAX_CACHE_SIZE, SCREENSHOT_CACHE_TTL
+from backend.api.services.page_analyzer import PageAnalyzer
 from backend.api.middleware import create_error_response, create_success_response
 
 logger = logging.getLogger(__name__)
 scan_bp = Blueprint('scan', __name__)
 
-# Global screenshot cache
+# ✅ DÜZELTME: Cache artık timestamp içeriyor
+# Format: {hash: (image_data, timestamp)}
 screenshot_cache = {}
+
+
+def cleanup_expired_cache():
+    """Remove expired cache entries based on TTL"""
+    current_time = time.time()
+    expired_keys = []
+
+    for key, (_, timestamp) in screenshot_cache.items():
+        if current_time - timestamp > SCREENSHOT_CACHE_TTL:
+            expired_keys.append(key)
+
+    for key in expired_keys:
+        del screenshot_cache[key]
+        logger.debug(f"Cache cleanup: Removed expired entry {key[:8]}...")
+
+    if expired_keys:
+        logger.info(f"🧹 Cache cleanup: Removed {len(expired_keys)} expired entries")
 
 
 @scan_bp.route('/scan', methods=['POST'])
@@ -66,11 +85,14 @@ def scan():
                 "Device might be locked or app is not running"
             )
 
+        # ✅ DÜZELTME: Cache cleanup before checking
+        cleanup_expired_cache()
+
         # Check screenshot cache
         source_hash = hashlib.md5(source.encode()).hexdigest()
 
         if source_hash in screenshot_cache:
-            optimized_image = screenshot_cache[source_hash]
+            optimized_image, _ = screenshot_cache[source_hash]
             logger.info("📸 Using cached screenshot")
         else:
             # Take screenshot and get window size concurrently
@@ -91,14 +113,18 @@ def scan():
             analyzer = PageAnalyzer(driver)
             optimized_image = analyzer.optimize_image(raw_screenshot)
 
-            # Update cache
-            screenshot_cache[source_hash] = optimized_image
+            # ✅ DÜZELTME: Cache'e timestamp ile kaydet
+            current_time = time.time()
+            screenshot_cache[source_hash] = (optimized_image, current_time)
 
-            # Limit cache size
+            # Limit cache size (FIFO)
             if len(screenshot_cache) > MAX_CACHE_SIZE:
-                screenshot_cache.pop(next(iter(screenshot_cache)))
+                oldest_key = min(screenshot_cache.keys(),
+                               key=lambda k: screenshot_cache[k][1])
+                del screenshot_cache[oldest_key]
+                logger.debug(f"Cache full: Removed oldest entry")
 
-            logger.info("📸 Screenshot captured and cached")
+            logger.info(f"📸 Screenshot captured and cached (TTL: {SCREENSHOT_CACHE_TTL}s)")
 
         # Get window size
         win_size = driver_mgr.get_window_size()

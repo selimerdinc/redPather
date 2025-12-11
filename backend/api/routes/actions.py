@@ -1,3 +1,5 @@
+# backend/api/routes/actions.py
+
 """
 Actions endpoint - Device interactions
 """
@@ -9,7 +11,8 @@ from appium.webdriver.common.appiumby import AppiumBy
 from backend.core.context import driver_mgr
 from backend.core.exceptions import DriverError, ValidationError
 from backend.api.middleware import create_error_response, create_success_response
-# DİKKAT: PageAnalyzer import yolu
+
+# ✅ DÜZELTME: Doğru import path
 from backend.api.services.page_analyzer import PageAnalyzer
 
 logger = logging.getLogger(__name__)
@@ -20,6 +23,12 @@ actions_bp = Blueprint('actions', __name__)
 def tap():
     """
     Perform SMART tap action on device
+
+    Smart Tap Logic:
+    1. iOS: Try RAW coordinates first (for Nav Mode point data)
+    2. Android: Try SCALED coordinates (for pixel-based clicks)
+    3. Fallback: Element-based tap if found in XML
+    4. Last Resort: Blind coordinate tap
     """
     try:
         req = request.json or {}
@@ -37,7 +46,7 @@ def tap():
         if not driver:
             raise DriverError("Driver not active", f"Please start {platform} driver first")
 
-        # Cihaz boyutlarını al
+        # Get device dimensions
         win_size = driver_mgr.get_window_size()
         device_w = win_size['width']
         device_h = win_size['height']
@@ -45,48 +54,47 @@ def tap():
         if device_w == 0 or device_h == 0:
             raise DriverError("Invalid device dimensions", "Failed to get device window size")
 
-        # --- KOORDİNAT HESAPLAMA STRATEJİSİ ---
-        # 1. Scaled (Pixel -> Point dönüşümü): Genellikle Android ve "Görüntüye tıklama" için
+        # --- COORDINATE CALCULATION STRATEGY ---
+        # 1. Scaled (Pixel -> Point conversion): Usually for Android and "Image clicks"
         scale_x = device_w / img_w
         scale_y = device_h / img_h
         scaled_x = int(x * scale_x)
         scaled_y = int(y * scale_y)
 
-        # 2. Raw (Olduğu gibi): Genellikle iOS ve "Element verisi" için
+        # 2. Raw (As-is): Usually for iOS and "Element data"
         raw_x = int(x)
         raw_y = int(y)
 
-        # --- SMART TAP MANTIĞI ---
+        # --- SMART TAP LOGIC ---
         source = driver_mgr.get_page_source()
         analyzer = PageAnalyzer(driver)
 
         element_clicked = False
         action_log = {}
-        final_x, final_y = scaled_x, scaled_y # Varsayılan olarak scaled kullan (Android standardı)
+        final_x, final_y = scaled_x, scaled_y  # Default to scaled (Android standard)
 
         if source:
             try:
                 tree = etree.fromstring(source.encode('utf-8'))
                 target_elem = None
 
-                # ADIM 1: Önce Raw Point (iOS için öncelikli) ile dene
-                # Eğer iOS ise ve veriyi frontend'deki kutucuklardan (point) aldıysak bu çalışır.
+                # STEP 1: Try Raw Point first (priority for iOS)
                 if platform == 'IOS':
                     target_elem = analyzer.find_element_at_coords(tree, raw_x, raw_y, platform)
                     if target_elem is not None:
                         logger.info(f"📍 Smart Tap: Element found using RAW coordinates ({raw_x}, {raw_y})")
                         final_x, final_y = raw_x, raw_y
 
-                # ADIM 2: Bulunamadıysa Scaled Pixel (Android için öncelikli) ile dene
+                # STEP 2: If not found, try Scaled Pixel (priority for Android)
                 if target_elem is None:
                     target_elem = analyzer.find_element_at_coords(tree, scaled_x, scaled_y, platform)
                     if target_elem is not None:
                         logger.info(f"📍 Smart Tap: Element found using SCALED coordinates ({scaled_x}, {scaled_y})")
                         final_x, final_y = scaled_x, scaled_y
 
-                # Element bulunduysa TIKLA
+                # Element found? CLICK IT
                 if target_elem is not None:
-                    # Info çıkar
+                    # Extract info
                     if platform == "ANDROID":
                         info = {
                             "res_id": target_elem.get("resource-id", ""),
@@ -104,7 +112,7 @@ def tap():
                             "is_password": "Secure" in str(target_elem.get("type", ""))
                         }
 
-                    # Locator üret
+                    # Generate locator
                     best_locator = analyzer.get_best_locator(target_elem, tree, info, platform, False)
 
                     if best_locator:
@@ -122,35 +130,25 @@ def tap():
 
                         by = strategy_map.get(strategy.lower())
                         if by:
-                            # Driver üzerinden elemente tıkla (Koordinat bağımsız)
-                            found_el = driver.find_element(by, value)
-                            found_el.click()
-                            element_clicked = True
+                            logger.info(
+                                f"🎯 Smart Tap: Element identified as {locator_str} but forcing coordinate tap for precision.")
+                            success = driver_mgr.perform_tap(final_x, final_y)
+                            if success:
+                                element_clicked = True
 
-                            action_log = {
-                                "type": "element_click",
-                                "locator": locator_str,
-                                "variable": best_locator.get('var_suffix', 'element'),
-                                "coords_used": "raw" if final_x == raw_x else "scaled"
-                            }
+                                action_log = {
+                                    "type": "element_click",
+                                    "locator": locator_str,
+                                    "variable": best_locator.get('var_suffix', 'element'),
+                                    "coords_used": "raw" if final_x == raw_x else "scaled"
+                                }
 
             except Exception as e:
                 logger.warning(f"Smart tap logic warning: {e}")
 
-        # Element bulunamadıysa (veya boşluğa tıklandıysa) KOORDİNAT İLE TIKLA
+        # Element not found (or clicked on empty space)? COORDINATE TAP
         if not element_clicked:
-            # iOS için: Eğer Nav Mode (Element verisi) ise Raw, değilse Scaled kullanmak daha güvenli.
-            # Ancak Smart Logic yukarıda çalışmadıysa muhtemelen boşluğa tıklanmıştır.
-            # Boşluk tıklamaları genellikle Görüntü üzerinden gelir (Pixel).
-
-            # Fallback Kararı:
-            # Eğer yukarıdaki RAW araması iOS'te başarısız olduysa ve SCALED de başarısız olduysa,
-            # muhtemelen boş bir alandır.
-
-            # iOS için varsayılan olarak RAW kullanmak (Nav Mode için) daha güvenli olabilir,
-            # ama blind tap için SCALED gerekir.
-
-            # Basit Heuristic: iOS ise ve coordinates device sınırları içindeyse RAW kullan.
+            # Simple Heuristic: Use RAW for iOS if coordinates are within device bounds
             if platform == 'IOS' and x <= device_w and y <= device_h:
                 final_x, final_y = raw_x, raw_y
             elif platform == 'IOS':
@@ -186,6 +184,7 @@ def tap():
 
 @actions_bp.route('/scroll', methods=['POST'])
 def scroll():
+    """Perform scroll action"""
     try:
         req = request.json or {}
         direction = req.get('direction', 'down')
@@ -218,6 +217,7 @@ def scroll():
 
 @actions_bp.route('/back', methods=['POST'])
 def back():
+    """Perform back navigation"""
     try:
         driver = driver_mgr.get_driver()
         if not driver:
@@ -229,9 +229,13 @@ def back():
         if not success:
             raise DriverError("Back action failed", "Could not perform back action")
 
-        return jsonify(create_success_response(data={"back": True}, message="Back navigation successful"))
+        return jsonify(create_success_response(
+            data={"back": True},
+            message="Back navigation successful"
+        ))
 
-    except DriverError as e: raise
+    except DriverError as e:
+        raise
     except Exception as e:
         logger.error(f"Back action error: {e}", exc_info=True)
         return jsonify(create_error_response("Back action failed", str(e))), 500
@@ -239,6 +243,7 @@ def back():
 
 @actions_bp.route('/hide-keyboard', methods=['POST'])
 def hide_keyboard():
+    """Hide on-screen keyboard"""
     try:
         driver = driver_mgr.get_driver()
         if not driver:
@@ -247,9 +252,13 @@ def hide_keyboard():
         logger.info("Hiding keyboard")
         success = driver_mgr.hide_keyboard()
 
-        return jsonify(create_success_response(data={"hidden": success}, message="Keyboard hide attempted"))
+        return jsonify(create_success_response(
+            data={"hidden": success},
+            message="Keyboard hide attempted"
+        ))
 
-    except DriverError as e: raise
+    except DriverError as e:
+        raise
     except Exception as e:
         logger.error(f"Hide keyboard error: {e}", exc_info=True)
         return jsonify(create_error_response("Hide keyboard failed", str(e))), 500
@@ -257,6 +266,7 @@ def hide_keyboard():
 
 @actions_bp.route('/verify', methods=['POST'])
 def verify_locator():
+    """Verify if a locator is valid and returns count"""
     try:
         req = request.json or {}
         locator = req.get('locator', '')
@@ -302,7 +312,8 @@ def verify_locator():
                 message="Locator verification failed"
             ))
 
-    except (DriverError, ValidationError) as e: raise
+    except (DriverError, ValidationError) as e:
+        raise
     except Exception as e:
         logger.error(f"Verify locator error: {e}", exc_info=True)
         return jsonify(create_error_response("Verification failed", str(e))), 500

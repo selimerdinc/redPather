@@ -1,7 +1,7 @@
 """
 Global context - Singleton instances
 """
-from backend.services.config_manager import ConfigManager
+from backend.api.services.config_manager import ConfigManager
 from backend.core.driver_manager import DriverManager
 
 # Global Singleton Instances
