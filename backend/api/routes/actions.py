@@ -6,7 +6,6 @@ from flask import Blueprint, request, jsonify
 from lxml import etree
 from appium.webdriver.common.appiumby import AppiumBy
 
-# ✅ GÜNCELLENDİ: cache_mgr eklendi
 from backend.core.context import driver_mgr, cache_mgr
 from backend.core.exceptions import DriverError, ValidationError
 from backend.api.middleware import create_error_response, create_success_response
@@ -55,7 +54,6 @@ def tap():
         raw_y = int(y)
 
         # --- SMART TAP LOGIC (OPTIMIZED) ---
-        # ✅ GÜNCELLENDİ: Önce Cache'e bak
         cached_data = cache_mgr.get_last_scan()
         source = None
 
@@ -115,11 +113,6 @@ def tap():
                         locator_str = best_locator['locator']
                         logger.info(f"🎯 Smart Tap: Clicking element -> {locator_str}")
 
-                        # Doğrulama yapmadan tıklama için driver kullan
-                        # (Burada isterseniz direkt locator ile tıklama da deneyebilirsiniz)
-                        # Ama koordinat her zaman daha garantidir.
-                        # Biz sadece loglama için element bulduk.
-
                         action_log = {
                             "type": "element_click",
                             "locator": locator_str,
@@ -127,7 +120,7 @@ def tap():
                             "coords_used": "raw" if final_x == raw_x else "scaled"
                         }
 
-                        # Koordinata tıkla (Elementi bulduk ama koordinata tıklıyoruz, en güvenlisi)
+                        # Koordinata tıkla
                         success = driver_mgr.perform_tap(final_x, final_y)
                         if success:
                             element_clicked = True
@@ -187,9 +180,6 @@ def scroll():
 
         if not success:
             raise DriverError("Scroll action failed", f"Could not scroll {direction}")
-
-        # ✅ Scroll sonrası cache geçersiz olabilir, temizleyebiliriz
-        # cache_mgr.last_scan_data = None  # Opsiyonel: Scroll sonrası sayfa değiştiği için
 
         return jsonify(create_success_response(
             data={"scrolled": direction},
@@ -305,3 +295,111 @@ def verify_locator():
     except Exception as e:
         logger.error(f"Verify locator error: {e}", exc_info=True)
         return jsonify(create_error_response("Verification failed", str(e))), 500
+
+
+# ==========================================
+# ✅ YENİ EKLENEN ENDPOINTLER (VERİ GÖNDERME & OKUMA)
+# ==========================================
+
+@actions_bp.route('/send-keys', methods=['POST'])
+def send_keys():
+    """Elemente metin gönderir"""
+    try:
+        req = request.json or {}
+        text = req.get('text')
+        locator = req.get('locator')
+
+        if text is None:
+            raise ValidationError("Missing text", "Text value is required")
+
+        driver = driver_mgr.get_driver()
+        if not driver:
+            raise DriverError("Driver not active", "Please start driver first")
+
+        element = None
+
+        if locator:
+            strategy, value = locator.split('=', 1)
+            strategy_map = {
+                'id': AppiumBy.ID,
+                'xpath': AppiumBy.XPATH,
+                'accessibility_id': AppiumBy.ACCESSIBILITY_ID,
+                'name': AppiumBy.NAME,
+                'class_name': AppiumBy.CLASS_NAME
+            }
+            by = strategy_map.get(strategy.lower(), AppiumBy.XPATH)
+            try:
+                element = driver.find_element(by, value)
+                logger.info(f"⌨️ Sending keys to locator: {locator}")
+            except Exception:
+                pass
+
+        # Locator yoksa aktif elemente yaz
+        if not element:
+            logger.info("⌨️ Sending keys to active element")
+            try:
+                element = driver.switch_to.active_element
+            except:
+                pass
+
+        if element:
+            try:
+                # element.clear() # İsteğe bağlı
+                element.send_keys(text)
+                try:
+                    driver.hide_keyboard()
+                except:
+                    pass
+                return jsonify(create_success_response(
+                    data={"sent": True, "text": text},
+                    message="Text input successful"
+                ))
+            except Exception as e:
+                raise DriverError("Failed to send keys", str(e))
+        else:
+            raise DriverError("No element found", "Could not identify target element")
+
+    except Exception as e:
+        logger.error(f"Send keys error: {e}", exc_info=True)
+        return jsonify(create_error_response("Input action failed", str(e))), 500
+
+
+@actions_bp.route('/get-text', methods=['POST'])
+def get_element_text():
+    """Doğrulama için element metnini çeker"""
+    try:
+        req = request.json or {}
+        locator = req.get('locator')
+
+        if not locator:
+            raise ValidationError("Missing locator", "Locator is required")
+
+        driver = driver_mgr.get_driver()
+        if not driver:
+            raise DriverError("Driver not active", "Please start driver first")
+
+        strategy, value = locator.split('=', 1)
+        strategy_map = {
+            'id': AppiumBy.ID,
+            'xpath': AppiumBy.XPATH,
+            'accessibility_id': AppiumBy.ACCESSIBILITY_ID
+        }
+        by = strategy_map.get(strategy.lower(), AppiumBy.XPATH)
+
+        try:
+            element = driver.find_element(by, value)
+            text = element.text
+            # Android için fallback
+            if not text and driver_mgr.platform == 'ANDROID':
+                text = element.get_attribute('content-desc') or ""
+
+            return jsonify(create_success_response(
+                data={"text": text},
+                message="Text retrieved"
+            ))
+        except Exception as e:
+            raise DriverError("Element not found", str(e))
+
+    except Exception as e:
+        logger.error(f"Get text error: {e}")
+        return jsonify(create_error_response("Failed to get text", str(e))), 500
