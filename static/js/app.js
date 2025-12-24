@@ -294,6 +294,33 @@ class AppController {
              });
              navigator.clipboard.writeText(output).then(() => this.ui.showToast("Copied", "All variables copied"));
         };
+
+        window.findElementByBounds = (x, y, w, h) => {
+    // App State'e erişim (Global state)
+    if (!window.appState) return -1;
+
+    const elements = window.appState.getActiveElements();
+    const tolerance = 20; // Piksel toleransı (Bazen XML ile Screenshot arasında ufak farklar olur)
+
+    let bestMatchIndex = -1;
+    let minDiff = Number.MAX_VALUE;
+
+    elements.forEach(el => {
+        // Koordinat farklarını topla (Manhattan Distance benzeri)
+        const diff = Math.abs(el.coords.x - x) +
+                     Math.abs(el.coords.y - y) +
+                     Math.abs(el.coords.w - w) +
+                     Math.abs(el.coords.h - h);
+
+        // Eğer fark tolerans sınırları içindeyse ve şimdiye kadarki en iyi eşleşmeyse
+        if (diff < tolerance && diff < minDiff) {
+            minDiff = diff;
+            bestMatchIndex = el.index;
+        }
+    });
+
+    return bestMatchIndex;
+};
     }
 }
 

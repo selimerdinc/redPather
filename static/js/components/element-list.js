@@ -161,7 +161,9 @@ class ElementListManager {
             newActive.classList.add('active');
             const isListView = document.getElementById('view-list').classList.contains('active');
             if (isListView) {
-                newActive.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // 👇 BU SATIRI YORUM SATIRI YAPIN VEYA SİLİN 👇
+                // newActive.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
                 newActive.classList.remove('flash');
                 void newActive.offsetWidth;
                 newActive.classList.add('flash');
