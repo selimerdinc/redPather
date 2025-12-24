@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# QA Red Pather - Startup Script
+# QA Red Pather - Startup Script (Smart Python Detection)
 # Usage: ./start.sh [android|ios]
 
 set -e
@@ -12,108 +12,66 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# 1. PYTHON VERSİYONUNU BUL (python vs python3)
+if command -v python3 &>/dev/null; then
+    PYTHON_CMD=python3
+elif command -v python &>/dev/null; then
+    PYTHON_CMD=python
+else
+    echo -e "${RED}❌ Python not found! Please install Python 3.8+${NC}"
+    exit 1
+fi
+
 echo -e "${BLUE}================================${NC}"
 echo -e "${BLUE}🚀 QA Red Pather Startup${NC}"
 echo -e "${BLUE}================================${NC}"
+echo -e "${GREEN}✓ Using: $($PYTHON_CMD --version)${NC}"
 echo ""
 
-# Check if virtual environment exists
+# 2. SANAL ORTAM KONTROLÜ
 if [ ! -d "venv" ]; then
     echo -e "${YELLOW}⚠️  Virtual environment not found!${NC}"
     echo -e "${GREEN}Creating virtual environment...${NC}"
-    python3 -m venv venv
+    $PYTHON_CMD -m venv venv
     echo -e "${GREEN}✓ Virtual environment created${NC}"
-    echo ""
 fi
 
-# Activate virtual environment
+# 3. AKTİVASYON
 echo -e "${GREEN}🔧 Activating virtual environment...${NC}"
 source venv/bin/activate
 
-# Check if requirements are installed
+# 4. BAĞIMLILIK KONTROLÜ
 if ! python -c "import flask" 2>/dev/null; then
     echo -e "${YELLOW}⚠️  Dependencies not installed!${NC}"
     echo -e "${GREEN}Installing dependencies...${NC}"
     pip install -r requirements.txt
     echo -e "${GREEN}✓ Dependencies installed${NC}"
-    echo ""
 fi
 
-# Check Appium
-echo -e "${GREEN}🔍 Checking Appium...${NC}"
+# 5. APPIUM KONTROLÜ
 if ! command -v appium &> /dev/null; then
     echo -e "${RED}❌ Appium not found!${NC}"
     echo -e "${YELLOW}Install: npm install -g appium${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ Appium found${NC}"
 
-# Check Appium server
-echo -e "${GREEN}🔍 Checking Appium server...${NC}"
+# Appium Sunucusunu Kontrol Et / Başlat
 if curl -s http://127.0.0.1:4723/wd/hub/status > /dev/null 2>&1; then
     echo -e "${GREEN}✓ Appium server is running${NC}"
 else
-    echo -e "${YELLOW}⚠️  Appium server not running!${NC}"
     echo -e "${YELLOW}Starting Appium in background...${NC}"
     appium --base-path /wd/hub > appium.log 2>&1 &
     APPIUM_PID=$!
     echo -e "${GREEN}✓ Appium started (PID: $APPIUM_PID)${NC}"
     sleep 3
 fi
+
 echo ""
-
-# Platform specific checks
-if [ "$PLATFORM" == "android" ]; then
-    echo -e "${GREEN}🤖 Android platform selected${NC}"
-
-    # Check ADB
-    if ! command -v adb &> /dev/null; then
-        echo -e "${RED}❌ ADB not found!${NC}"
-        echo -e "${YELLOW}Install Android SDK and add to PATH${NC}"
-        exit 1
-    fi
-
-    # Check devices
-    DEVICE_COUNT=$(adb devices | grep -v "List" | grep -c "device$" || true)
-    if [ "$DEVICE_COUNT" -eq 0 ]; then
-        echo -e "${YELLOW}⚠️  No Android devices connected!${NC}"
-        echo -e "${YELLOW}Connect a device or start an emulator${NC}"
-    else
-        echo -e "${GREEN}✓ Found $DEVICE_COUNT Android device(s)${NC}"
-        adb devices | grep -v "List"
-    fi
-
-elif [ "$PLATFORM" == "ios" ]; then
-    echo -e "${GREEN}📱 iOS platform selected${NC}"
-
-    # Check if on macOS
-    if [[ "$OSTYPE" != "darwin"* ]]; then
-        echo -e "${RED}❌ iOS testing requires macOS!${NC}"
-        exit 1
-    fi
-
-    # Check simulator
-    if ! command -v xcrun &> /dev/null; then
-        echo -e "${RED}❌ Xcode not found!${NC}"
-        exit 1
-    fi
-
-    echo -e "${GREEN}✓ Xcode tools found${NC}"
-fi
-echo ""
-
-# Start Flask app
-echo -e "${BLUE}================================${NC}"
 echo -e "${GREEN}🌟 Starting QA Red Pather...${NC}"
-echo -e "${BLUE}================================${NC}"
 echo -e "${YELLOW}Server: ${NC}http://127.0.0.1:5000"
-echo -e "${YELLOW}Logs: ${NC}redpather.log"
-echo -e "${YELLOW}Press Ctrl+C to stop${NC}"
-echo -e "${BLUE}================================${NC}"
-echo ""
 
-# Run app
+# UYGULAMAYI BAŞLAT
 python app.py
 
-# Cleanup on exit
-trap "echo ''; echo -e '${YELLOW}Cleaning up...${NC}'; kill $APPIUM_PID 2>/dev/null || true; deactivate" EXIT
+# ÇIKIŞTA TEMİZLİK
+trap "echo ''; echo -e '${YELLOW}Stopping Appium...${NC}'; kill $APPIUM_PID 2>/dev/null || true; deactivate" EXIT

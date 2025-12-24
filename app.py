@@ -59,9 +59,11 @@ if __name__ == '__main__':
     logger.info("📖 Logs: redpather.log")
     logger.info("=" * 60)
 
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() in ('true', '1', 't')
+
     try:
-        # ✅ DEĞİŞİKLİK: use_reloader=False parametresini ekleyin
-        app.run(debug=True, use_reloader=False, port=5000, host='0.0.0.0')
+        # use_reloader=False: Thread hatalarını önler
+        app.run(debug=debug_mode, use_reloader=False, port=5000, host='0.0.0.0')
     except KeyboardInterrupt:
         logger.info("\n👋 Server stopped by user")
     except Exception as e:

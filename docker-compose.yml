@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  # Red Pather Web Arayüzü
+  redpather:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app  # Geliştirme yaparken kodu canlı senkronize et
+    environment:
+      - APPIUM_HOST=appium
+      - APPIUM_PORT=4723
+    depends_on:
+      - appium
+    networks:
+      - testing_net
+
+  # Appium Sunucusu
+  appium:
+    image: appium/appium:latest
+    ports:
+      - "4723:4723"
+    environment:
+      - ALLOW_CORS=true
+    # Not: Gerçek cihazlara erişim için --privileged gerekebilir
+    privileged: true
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb  # USB cihazlarına erişim (Linux için)
+      # - ~/.android:/root/.android  # Emulator erişimi için (Opsiyonel)
+    networks:
+      - testing_net
+
+networks:
+  testing_net:
+    driver: bridge
