@@ -1,70 +1,56 @@
-import logging
 import sys
 import os
+import threading
+import logging
+import webview
 from flask import Flask
 from flask_cors import CORS
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Paketleme sonrası dosya yollarını doğru bulmak için kritik fonksiyon
+def get_resource_path(relative_path):
+    try:
+        # PyInstaller'ın oluşturduğu geçici dizin yolu
+        base_path = sys._MEIPASS
+    except Exception:
+        # Geliştirme modu çalışma dizini
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# Backend modüllerini sisteme tanıt
+sys.path.append(get_resource_path("."))
 
 from backend.api.routes import register_blueprints
 from backend.api.middleware import setup_error_handlers
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler('redpather.log')
-    ]
-)
-
-# Set library log levels
-logging.getLogger('urllib3').setLevel(logging.WARNING)
-logging.getLogger('selenium').setLevel(logging.WARNING)
-logging.getLogger('appium').setLevel(logging.INFO)
-
-logger = logging.getLogger(__name__)
-
-
 def create_app():
-    """Application factory"""
-    app = Flask(__name__)
-
-    # Enable CORS
+    # Templates ve Static yollarını açıkça tanımla
+    app = Flask(__name__,
+                template_folder=get_resource_path('templates'),
+                static_folder=get_resource_path('static'))
     CORS(app)
-
-    # Configuration
     app.config['JSON_SORT_KEYS'] = False
-    app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB
-
-    # Register blueprints
     register_blueprints(app)
-
-    # Setup error handlers
     setup_error_handlers(app)
-
     return app
 
+flask_app = create_app()
 
-# Create app instance
-app = create_app()
-
+def start_server():
+    # macOS AirPlay çakışmasını önlemek için 5005 portu
+    # use_reloader=False masaüstünde zorunludur
+    flask_app.run(host='127.0.0.1', port=5005, debug=False, use_reloader=False)
 
 if __name__ == '__main__':
-    logger.info("=" * 60)
-    logger.info("🚀 QA Red Pather Server Starting...")
-    logger.info("=" * 60)
-    logger.info("📱 Mobile Test Automation Tool")
-    logger.info("🌍 Server: http://127.0.0.1:5000")
-    logger.info("📖 Logs: redpather.log")
-    logger.info("=" * 60)
+    # Flask sunucusunu arka planda başlat
+    server_thread = threading.Thread(target=start_server)
+    server_thread.daemon = True
+    server_thread.start()
 
-    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() in ('true', '1', 't')
-
-    try:
-        # use_reloader=False: Thread hatalarını önler
-        app.run(debug=debug_mode, use_reloader=False, port=5000, host='0.0.0.0')
-    except KeyboardInterrupt:
-        logger.info("\n👋 Server stopped by user")
-    except Exception as e:
-        logger.error(f"❌ Server error: {e}", exc_info=True)
+    # Masaüstü penceresini oluştur
+    webview.create_window(
+        'QA Red Pather',
+        'http://127.0.0.1:5005',
+        width=1400,
+        height=900
+    )
+    webview.start()

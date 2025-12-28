@@ -90,13 +90,14 @@ class ElementListManager {
         actions.appendChild(copyBtn);
 
         const deleteBtn = this.createActionButton(
-            `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
-            "Sil",
-            true
+    `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
+    "Sil",
+    true
         );
         deleteBtn.onclick = (e) => {
-            e.stopPropagation();
-            if (window.removeElement) window.removeElement(e, index);
+        e.stopPropagation();
+    // Global removeElement fonksiyonu çağrılıyor mu?
+        if (window.removeElement) window.removeElement(e, index);
         };
         actions.appendChild(deleteBtn);
         item.appendChild(actions);

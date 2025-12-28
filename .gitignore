@@ -73,3 +73,7 @@ htmlcov/
 *.log
 logs/
 target/
+QA-Red-Pather.dmg
+RedPather.spec
+rw.74798.QA-Red-Pather.dmg
+app.icns

@@ -20,6 +20,30 @@ from backend.core.exceptions import (
 
 logger = logging.getLogger(__name__)
 
+import os
+import platform
+
+# macOS için Android SDK yollarını otomatik tanımla
+if platform.system() == "Darwin":
+    # Kullanıcının ana dizinindeki standart SDK yolu
+    android_sdk_path = os.path.expanduser("~/Library/Android/sdk")
+
+    if os.path.exists(android_sdk_path):
+        # Ortam değişkenlerini uygulama seviyesinde ayarla
+        os.environ["ANDROID_HOME"] = android_sdk_path
+        os.environ["ANDROID_SDK_ROOT"] = android_sdk_path
+
+        # PATH'e gerekli araçları ekle
+        paths = [
+            os.path.join(android_sdk_path, "platform-tools"),
+            os.path.join(android_sdk_path, "tools"),
+            os.path.join(android_sdk_path, "tools", "bin"),
+            os.environ.get("PATH", "")
+        ]
+        os.environ["PATH"] = ":".join(paths)
+        logger.info(f"✅ Android SDK yolları tanımlandı: {android_sdk_path}")
+    else:
+        logger.warning(f"⚠️ Android SDK yolu bulunamadı: {android_sdk_path}")
 
 class DriverManager:
     def __init__(self, config_manager):

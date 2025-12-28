@@ -241,14 +241,18 @@ class AppController {
         window.exportMgr = this.exportMgr;
 
         window.removeElement = (e, index) => {
-            e.stopPropagation();
-            const el = this.allElements.find(i => i.index === index);
-            if (el) {
-                el.isDeleted = true;
-                if(el.locator) this.deletedLocators.add(el.locator);
-                this.state.set('elements', this.allElements);
-            }
-        };
+    e.stopPropagation();
+    const el = this.allElements.find(i => i.index === index);
+    if (el) {
+        el.isDeleted = true;
+        if(el.locator) this.deletedLocators.add(el.locator);
+
+        // KRİTİK: Referansı yenileyerek state'i tetikle
+        this.state.set('elements', [...this.allElements]);
+
+        this.ui.showToast("Silindi", "Element listeden kaldırıldı", "info");
+    }
+};
 
         window.highlightElement = (index) => {
             this.state.set('ui.currentHoverIndex', index);
