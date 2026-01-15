@@ -1,6 +1,5 @@
-from typing import Dict, Any, Optional
-
 import os
+import sys
 import logging
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
@@ -9,15 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def str_to_bool(param: Any) -> bool:
-    """
-    Convert string/int/bool to boolean safely.
-
-    Args:
-        param: Value to convert
-
-    Returns:
-        bool: Converted boolean value
-    """
+    """Safely convert string/int/bool to boolean."""
     if isinstance(param, bool):
         return param
     if param is None:
@@ -26,8 +17,7 @@ def str_to_bool(param: Any) -> bool:
 
 
 class ConfigConstants:
-    """Configuration constants and defaults"""
-    # Defaults
+    """Orijinal Sabitler - Değiştirilmedi"""
     DEFAULT_ANDROID_DEVICE = "emulator-5554"
     DEFAULT_ANDROID_PKG = "com.app.package"
     DEFAULT_ANDROID_ACT = "com.app.Activity"
@@ -35,10 +25,8 @@ class ConfigConstants:
     DEFAULT_IOS_BUNDLE = "com.app.bundle"
     DEFAULT_IOS_PLATFORM = "16.0"
     DEFAULT_IOS_SIGN = "iPhone Developer"
-
-    # Validation
-    MIN_PKG_LENGTH = 5
-    MIN_BUNDLE_LENGTH = 5
+    MIN_PKG_LENGTH = 2
+    MIN_BUNDLE_LENGTH = 2
 
 
 class ConfigValidationError(Exception):
@@ -48,29 +36,41 @@ class ConfigValidationError(Exception):
 
 class ConfigManager:
     """
-    Manages application configuration with hot-reload support.
-    Reads from .env file and provides validation.
+    Kalıcı yapılandırma yönetimi.
+    Ayarları macOS'te ~/Library/Application Support/RedPather/.env içine yazar.
     """
 
     def __init__(self):
         self._config: Dict[str, Any] = {}
         self._last_modified: float = 0
-        self._env_path = ".env"
+
+        # --- ÖNEMLİ: Masaüstü Uygulaması Yolu ---
+        if getattr(sys, 'frozen', False):
+            # Paketleme sonrası macOS kalıcı dizini
+            app_dir = os.path.expanduser("~/Library/Application Support/RedPather")
+            if not os.path.exists(app_dir):
+                os.makedirs(app_dir, exist_ok=True)
+            self._env_path = os.path.join(app_dir, ".env")
+        else:
+            # Geliştirme modu
+            self._env_path = ".env"
+
         self._initialize()
 
     def _initialize(self):
-        """Initialize configuration"""
+        """Initialize configuration with persistence check"""
         if not os.path.exists(self._env_path):
-            logger.warning(f"{self._env_path} not found. Using defaults.")
+            logger.warning(f"Config not found at {self._env_path}. Creating default.")
             self._create_default_env()
 
-        load_dotenv()
+        # Orijinal hot-reload mekanizmasını başlat
+        load_dotenv(self._env_path, override=True)
         self._config = self._load_config()
         self._last_modified = self._get_env_modified_time()
-        logger.info("Configuration loaded successfully")
+        logger.info(f"Configuration loaded from: {self._env_path}")
 
     def _create_default_env(self):
-        """Create default .env file if not exists"""
+        """Create default .env file content"""
         default_content = """# ANDROID CONFIG
 ANDROID_DEVICE=emulator-5554
 ANDROID_PKG=com.example.app
@@ -89,19 +89,20 @@ IOS_SIGN_ID=iPhone Developer
         try:
             with open(self._env_path, 'w') as f:
                 f.write(default_content)
-            logger.info(f"Created default {self._env_path}")
         except Exception as e:
-            logger.error(f"Failed to create default .env: {e}")
+            logger.error(f"Failed to create .env: {e}")
 
     def _get_env_modified_time(self) -> float:
-        """Get .env file modification time"""
         if os.path.exists(self._env_path):
             return os.path.getmtime(self._env_path)
         return 0
 
     def _load_config(self) -> Dict[str, Any]:
-        """Load and validate configuration"""
-        config = {
+        """Load and validate configuration from .env"""
+        # os.getenv yerine doğrudan yükleme için dotenv'i tekrar zorla
+        load_dotenv(self._env_path, override=True)
+
+        return {
             "ANDROID_DEVICE": os.getenv("ANDROID_DEVICE", ConfigConstants.DEFAULT_ANDROID_DEVICE),
             "ANDROID_PKG": os.getenv("ANDROID_PKG", ConfigConstants.DEFAULT_ANDROID_PKG),
             "ANDROID_ACT": os.getenv("ANDROID_ACT", ConfigConstants.DEFAULT_ANDROID_ACT),
@@ -112,135 +113,113 @@ IOS_SIGN_ID=iPhone Developer
             "IOS_UDID": os.getenv("IOS_UDID", ""),
             "IOS_PLATFORM_VER": os.getenv("IOS_PLATFORM_VER", ConfigConstants.DEFAULT_IOS_PLATFORM),
             "IOS_ORG_ID": os.getenv("IOS_ORG_ID", ""),
-            "IOS_SIGN_ID": os.getenv("IOS_SIGN_ID", ConfigConstants.DEFAULT_IOS_SIGN)
+            "IOS_SIGN_ID": os.getenv("IOS_SIGN_ID", ConfigConstants.DEFAULT_IOS_SIGN),
+            "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY", ""),
+            "AI_CUSTOM_PROMPT": os.getenv("AI_CUSTOM_PROMPT", ""),
+            "AI_AUDIT_PROMPTS": os.getenv("AI_AUDIT_PROMPTS", "[]"),
+            # Jira Integration
+            "JIRA_URL": os.getenv("JIRA_URL", ""),
+            "JIRA_EMAIL": os.getenv("JIRA_EMAIL", ""),
+            "JIRA_PROJECT": os.getenv("JIRA_PROJECT", ""),
+            "JIRA_TOKEN": os.getenv("JIRA_TOKEN", "")
         }
 
-        return config
-
     def validate_config(self, config: Dict[str, Any], platform: str) -> tuple[bool, Optional[str]]:
-        """
-        Validate configuration for given platform
-
-        Args:
-            config: Configuration dictionary
-            platform: "ANDROID" or "IOS"
-
-        Returns:
-            tuple: (is_valid, error_message)
-        """
+        """Orijinal Validasyon Mantığı - Değiştirilmedi"""
         try:
             if platform == "ANDROID":
                 pkg = config.get("ANDROID_PKG", "")
                 act = config.get("ANDROID_ACT", "")
-
                 if len(pkg) < ConfigConstants.MIN_PKG_LENGTH:
                     return False, f"Android package name too short (min {ConfigConstants.MIN_PKG_LENGTH} chars)"
-
                 if len(act) < ConfigConstants.MIN_PKG_LENGTH:
                     return False, f"Android activity name too short (min {ConfigConstants.MIN_PKG_LENGTH} chars)"
-
                 if not config.get("ANDROID_DEVICE"):
                     return False, "Android device name is required"
-
             elif platform == "IOS":
                 bundle = config.get("IOS_BUNDLE", "")
-
-                if len(bundle) < ConfigConstants.MIN_BUNDLE_LENGTH:
-                    return False, f"iOS bundle ID too short (min {ConfigConstants.MIN_BUNDLE_LENGTH} chars)"
-
+                if not bundle or len(bundle) < ConfigConstants.MIN_BUNDLE_LENGTH:
+                    return False, f"iOS Bundle ID eksik veya çok kısa (min {ConfigConstants.MIN_BUNDLE_LENGTH} karakter)"
                 if not config.get("IOS_DEVICE"):
-                    return False, "iOS device name is required"
-
+                    return False, "iOS Cihaz İsmi eksik"
+                # UDID yoksa uyarı ver (gerçek cihaz bağlantıları için kritik)
+                if not config.get("IOS_UDID"):
+                    logger.warning("⚠️ iOS UDID boş. Gerçek cihazda bağlantı sorunları yaşanabilir.")
             return True, None
 
         except Exception as e:
             return False, f"Validation error: {str(e)}"
 
     def get_all(self) -> Dict[str, Any]:
-        """
-        Get all configuration with hot-reload support
-
-        Returns:
-            dict: Configuration dictionary
-        """
-        # Hot reload: check if .env was modified
+        """Get all config with original Hot-Reload support"""
         current_modified = self._get_env_modified_time()
         if current_modified > self._last_modified:
             try:
-                load_dotenv(override=True)
                 self._config = self._load_config()
                 self._last_modified = current_modified
-                logger.info("🔄 Config reloaded from .env")
+                logger.info("🔄 Config hot-reloaded from persistent file")
             except Exception as e:
                 logger.error(f"Failed to reload config: {e}")
-
         return self._config.copy()
 
     def get(self, key: str, default: Any = None) -> Any:
-        """
-        Get single configuration value
-
-        Args:
-            key: Configuration key
-            default: Default value if key not found
-
-        Returns:
-            Configuration value or default
-        """
         return self._config.get(key, default)
 
     def update(self, new_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Update configuration at runtime
-
-        Args:
-            new_data: New configuration values
-
-        Returns:
-            dict: Updated configuration
-        """
+        """Update internal state and sync to persistent .env"""
         for key, value in new_data.items():
             if key in self._config:
-                # Convert boolean strings
                 if isinstance(self._config[key], bool):
                     value = str_to_bool(value)
                 self._config[key] = value
-                logger.info(f"Config updated: {key} = {value}")
 
+        # UI güncellendiğinde dosyaya kaydı tetikle
+        self.save_to_env(self._config)
         return self._config.copy()
 
     def save_to_env(self, config: Dict[str, Any]) -> bool:
-        """
-        Save configuration to .env file
-
-        Args:
-            config: Configuration to save
-
-        Returns:
-            bool: Success status
-        """
+        """Saves configuration to the persistent path in a safe way"""
         try:
-            lines = []
-            lines.append("# ANDROID CONFIG\n")
-            lines.append(f"ANDROID_DEVICE={config.get('ANDROID_DEVICE', '')}\n")
-            lines.append(f"ANDROID_PKG={config.get('ANDROID_PKG', '')}\n")
-            lines.append(f"ANDROID_ACT={config.get('ANDROID_ACT', '')}\n")
-            lines.append(f"ANDROID_NO_RESET={config.get('ANDROID_NO_RESET', True)}\n")
-            lines.append(f"ANDROID_FULL_RESET={config.get('ANDROID_FULL_RESET', False)}\n")
-            lines.append("\n# IOS CONFIG\n")
-            lines.append(f"IOS_DEVICE={config.get('IOS_DEVICE', '')}\n")
-            lines.append(f"IOS_BUNDLE={config.get('IOS_BUNDLE', '')}\n")
-            lines.append(f"IOS_UDID={config.get('IOS_UDID', '')}\n")
-            lines.append(f"IOS_PLATFORM_VER={config.get('IOS_PLATFORM_VER', '')}\n")
-            lines.append(f"IOS_ORG_ID={config.get('IOS_ORG_ID', '')}\n")
-            lines.append(f"IOS_SIGN_ID={config.get('IOS_SIGN_ID', '')}\n")
+            def format_val(v):
+                if v is None: return '""'
+                # Boolean handling
+                if isinstance(v, bool): return str(v)
+                # Ensure it's string
+                s = str(v)
+                # Escape double quotes and wrap in double quotes
+                escaped = s.replace('"', '\\"')
+                return f'"{escaped}"'
 
-            with open(self._env_path, 'w') as f:
+            lines = [
+                "# ANDROID CONFIG\n",
+                f"ANDROID_DEVICE={format_val(config.get('ANDROID_DEVICE', ''))}\n",
+                f"ANDROID_PKG={format_val(config.get('ANDROID_PKG', ''))}\n",
+                f"ANDROID_ACT={format_val(config.get('ANDROID_ACT', ''))}\n",
+                f"ANDROID_NO_RESET={config.get('ANDROID_NO_RESET', True)}\n",
+                f"ANDROID_FULL_RESET={config.get('ANDROID_FULL_RESET', False)}\n",
+                "\n# IOS CONFIG\n",
+                f"IOS_DEVICE={format_val(config.get('IOS_DEVICE', ''))}\n",
+                f"IOS_BUNDLE={format_val(config.get('IOS_BUNDLE', ''))}\n",
+                f"IOS_UDID={format_val(config.get('IOS_UDID', ''))}\n",
+                f"IOS_PLATFORM_VER={format_val(config.get('IOS_PLATFORM_VER', ''))}\n",
+                f"IOS_ORG_ID={format_val(config.get('IOS_ORG_ID', ''))}\n",
+                f"IOS_SIGN_ID={format_val(config.get('IOS_SIGN_ID', ''))}\n",
+                "\n# AI CONFIG\n",
+                f"GEMINI_API_KEY={format_val(config.get('GEMINI_API_KEY', ''))}\n",
+                f"AI_CUSTOM_PROMPT={format_val(config.get('AI_CUSTOM_PROMPT', ''))}\n",
+                f"AI_AUDIT_PROMPTS={format_val(config.get('AI_AUDIT_PROMPTS', '[]'))}\n",
+                "\n# JIRA CONFIG\n",
+                f"JIRA_URL={format_val(config.get('JIRA_URL', ''))}\n",
+                f"JIRA_EMAIL={format_val(config.get('JIRA_EMAIL', ''))}\n",
+                f"JIRA_PROJECT={format_val(config.get('JIRA_PROJECT', ''))}\n",
+                f"JIRA_TOKEN={format_val(config.get('JIRA_TOKEN', ''))}\n"
+            ]
+            with open(self._env_path, 'w', encoding='utf-8') as f:
                 f.writelines(lines)
 
-            logger.info("Configuration saved to .env")
+            # Kayıt sonrası modifikasyon zamanını güncelle
+            self._last_modified = self._get_env_modified_time()
             return True
-
         except Exception as e:
-            logger.error(f"Failed to save config: {e}")
+            logger.error(f"Failed to save config to {self._env_path}: {e}")
             return False

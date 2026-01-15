@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# QA Red Pather - Startup Script (Smart Python Detection)
+# Red Pather - Startup Script (Smart Python Detection)
 # Usage: ./start.sh [android|ios]
 
 set -e
@@ -23,7 +23,7 @@ else
 fi
 
 echo -e "${BLUE}================================${NC}"
-echo -e "${BLUE}🚀 QA Red Pather Startup${NC}"
+echo -e "${BLUE}🚀 Red Pather Startup${NC}"
 echo -e "${BLUE}================================${NC}"
 echo -e "${GREEN}✓ Using: $($PYTHON_CMD --version)${NC}"
 echo ""
@@ -67,7 +67,7 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}🌟 Starting QA Red Pather...${NC}"
+echo -e "${GREEN}🌟 Starting Red Pather...${NC}"
 echo -e "${YELLOW}Server: ${NC}http://127.0.0.1:5000"
 
 # UYGULAMAYI BAŞLAT

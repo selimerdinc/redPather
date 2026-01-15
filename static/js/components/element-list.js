@@ -89,6 +89,32 @@ class ElementListManager {
         copyBtn.onclick = (e) => this.handleCopy(e, el);
         actions.appendChild(copyBtn);
 
+        if (window.app && window.app.isAiEnabled) {
+            const aiBtn = this.createActionButton(
+                `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`,
+                "AI XPath Önerisi"
+            );
+            aiBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (window.app && window.app.startAiXpathSuggest) window.app.startAiXpathSuggest(el, el.index);
+            };
+            actions.appendChild(aiBtn);
+        }
+
+        // Input alanları için metin gönderme butonu
+        const isInput = el.variable && (el.variable.includes('input') || el.variable.includes('field') || el.variable.includes('text'));
+        if (isInput) {
+            const sendTextBtn = this.createActionButton(
+                `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>`,
+                "Metin Gönder"
+            );
+            sendTextBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (window.showInputModal) window.showInputModal(el.locator, el.text || el.variable);
+            };
+            actions.appendChild(sendTextBtn);
+        }
+
         const deleteBtn = this.createActionButton(
             `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
             "Sil",
@@ -96,6 +122,7 @@ class ElementListManager {
         );
         deleteBtn.onclick = (e) => {
             e.stopPropagation();
+            // Global removeElement fonksiyonu çağrılıyor mu?
             if (window.removeElement) window.removeElement(e, index);
         };
         actions.appendChild(deleteBtn);
@@ -128,28 +155,27 @@ class ElementListManager {
         const originalHtml = btn.innerHTML;
         btn.innerHTML = `<div class="loader"></div>`;
         try {
-            const result = window.api ? await window.api.verifyLocator(locator) : await window.apiCall('/api/verify', { method: 'POST', body: JSON.stringify({locator}) });
+            const result = window.api ? await window.api.verifyLocator(locator) : await window.apiCall('/api/verify', { method: 'POST', body: JSON.stringify({ locator }) });
             const data = result.data || result;
             if (data.valid) {
                 btn.innerHTML = `<span class="text-emerald-500 font-bold text-sm">✓</span>`;
-                window.showToast("Verified", `Count: ${data.count}`, 'success');
+                window.app.ui.showToast("Doğrulandı", `Eşleşme: ${data.count}`, 'success');
             } else {
                 btn.innerHTML = `<span class="text-red-500 font-bold text-sm">✕</span>`;
-                window.showToast("Failed", `Found: ${data.count}`, 'error');
+                window.app.ui.showToast("Başarısız", `Bulunan: ${data.count}`, 'error');
             }
         } catch (err) {
             btn.innerHTML = `<span class="text-yellow-500 font-bold text-sm">!</span>`;
             console.error(err);
-            window.showToast("Error", "Verify failed", 'error');
+            window.app.ui.showToast("Hata", "Doğrulama başarısız", 'error');
         }
         setTimeout(() => btn.innerHTML = originalHtml, 2000);
     }
 
     handleCopy(e, el) {
         e.stopPropagation();
-        const parts = el.locator.split('=', 1);
-        const txt = `\${${el.variable.replace(/[${}]/g, '')}} = \t${parts[0]}=${el.locator.substring(parts[0].length + 1)}`;
-        navigator.clipboard.writeText(txt).then(() => window.showToast("Copied", "Line copied", 'success'));
+        const txt = `\${${el.variable.replace(/[${}]/g, '')}}\t${el.locator}`;
+        navigator.clipboard.writeText(txt).then(() => window.app.ui.showToast("Kopyalandı", "Satır kopyalandı", 'success'));
     }
 
     handleHighlight(index) {
@@ -159,15 +185,20 @@ class ElementListManager {
         const newActive = document.getElementById(`list-item-${index}`);
         if (newActive) {
             newActive.classList.add('active');
-            const isListView = document.getElementById('view-list').classList.contains('active');
-            if (isListView) {
-                // 👇 BU SATIRI YORUM SATIRI YAPIN VEYA SİLİN 👇
-                // newActive.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
 
-                newActive.classList.remove('flash');
-                void newActive.offsetWidth;
-                newActive.classList.add('flash');
-            }
+    scrollToIndex(index) {
+        window.debug?.log("Attempting to scroll to index:", index);
+        const item = document.getElementById(`list-item-${index}`);
+        if (item) {
+            window.debug?.log("Element found, scrolling...", item);
+            item.scrollIntoView({ behavior: 'auto', block: 'center' });
+            item.classList.remove('flash');
+            void item.offsetWidth;
+            item.classList.add('flash');
+        } else {
+            console.warn("Element NOT found for scrolling:", `list-item-${index}`);
         }
     }
 }

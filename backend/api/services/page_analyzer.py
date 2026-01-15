@@ -21,7 +21,7 @@ class AnalyzerConstants:
 
     # Text constraints
     MAX_TEXT_LENGTH = 50
-    MAX_VAR_NAME_LENGTH = 55
+    MAX_VAR_NAME_LENGTH = 35
     MAX_TITLE_LENGTH = 30
     MIN_TITLE_LENGTH = 2
     MAX_TEXT_WORDS = 10
@@ -53,6 +53,31 @@ class AnalyzerConstants:
     BLACKLIST_IDS = [
         "android:id/content", "android:id/statusBarBackground",
         "android:id/navigationBarBackground", "android:id/home"
+    ]
+
+    # Turkish to English mapping for variable names
+    TR_EN_MAPPING = {
+        "sirket": "company", "varlik": "asset", "ara": "search",
+        "toplam": "total", "bakiye": "balance", "giris": "login",
+        "cikis": "logout", "kayit": "register", "sifre": "password",
+        "kullanici": "user", "hesap": "account", "profil": "profile",
+        "ayarlar": "settings", "bildirim": "notification", "mesaj": "message",
+        "anasayfa": "home", "detay": "detail", "liste": "list",
+        "ekle": "add", "sil": "delete", "guncelle": "update",
+        "iptal": "cancel", "onayla": "confirm", "devam": "continue",
+        "geri": "back", "ileri": "next", "tamam": "ok",
+        "veya": "or", "ve": "and", "adi": "name", "no": "no",
+        "tarih": "date", "saat": "time", "tutar": "amount",
+        "odeme": "payment", "kart": "card", "para": "money",
+        "doviz": "currency", "alis": "buy", "satis": "sell",
+        "islem": "transaction", "gecmis": "history", "haber": "news",
+        "duyuru": "announcement", "yardim": "help", "destek": "support"
+    }
+
+    # Redundant words to remove from variable names
+    REDUNDANT_WORDS = [
+        "dashboard", "screen", "view", "page", "container",
+        "wrapper", "holder", "cell", "row", "item"
     ]
 
 
@@ -108,13 +133,14 @@ class PageAnalyzer:
 
     def clean_text_for_var(self, text: Optional[str]) -> str:
         """
-        Clean text for use as variable name
+        Clean text for use as variable name.
+        Translates Turkish words to English and removes redundant words.
 
         Args:
             text: Text to clean
 
         Returns:
-            str: Cleaned variable-safe text
+            str: Cleaned variable-safe text in English
         """
         if not text:
             return "element"
@@ -128,6 +154,45 @@ class PageAnalyzer:
 
         # Remove multiple underscores and trim
         clean = re.sub(r'_+', '_', clean).strip('_').lower()
+
+        # Split into words and filter
+        words = clean.split('_')
+        processed_words = []
+        for word in words:
+            # Skip purely numeric words (prices, balances, dates)
+            if word.isdigit():
+                continue
+            
+            # Skip words that look like formatted numbers (e.g. "7224947") if they are long
+            if len(word) >= 5 and any(char.isdigit() for char in word):
+                # If it's mostly digits, skip it
+                digit_count = sum(c.isdigit() for c in word)
+                if digit_count / len(word) > 0.6:
+                    continue
+
+            # Translate Turkish words to English
+            translated = AnalyzerConstants.TR_EN_MAPPING.get(word, word)
+            processed_words.append(translated)
+        
+        # Remove redundant words
+        filtered_words = [w for w in processed_words if w not in AnalyzerConstants.REDUNDANT_WORDS]
+        
+        # Fallback to original words if everything was filtered (but keep filtering numbers)
+        if not filtered_words:
+            filtered_words = [w for w in processed_words if not w.isdigit()]
+            
+        if not filtered_words:
+            return "element"
+
+        clean = '_'.join(filtered_words)
+        
+        # Remove duplicate consecutive words
+        words = clean.split('_')
+        deduped = [words[0]] if words else []
+        for w in words[1:]:
+            if w != deduped[-1]:
+                deduped.append(w)
+        clean = '_'.join(deduped)
 
         # Truncate to max length
         return clean[:AnalyzerConstants.MAX_VAR_NAME_LENGTH]
@@ -143,15 +208,20 @@ class PageAnalyzer:
             is_password: Whether element is password field
 
         Returns:
-            str: Type suffix (button, input, lbl, etc.)
+            str: Type suffix (btn, input, lbl, etc.)
         """
         c = str(class_name).lower()
         r = str(resource_id).lower()
 
         if is_password:
             return "input"
+        
+        # Search detection (High priority)
+        if "search" in r or "search" in c or "ara" in r:
+            return "search_box"
+            
         if "button" in c or "btn" in r:
-            return "button"
+            return "btn"
         if "edittext" in c or "field" in c or "input" in r:
             return "input"
         if "text" in c or "label" in c:
@@ -163,14 +233,117 @@ class PageAnalyzer:
         if "switch" in c or "toggle" in c:
             return "switch"
 
-        return "view"
+        return "el"
+
+    def generate_semantic_name(self, info: Dict[str, Any], var_suffix: str, type_suffix: str) -> str:
+        """
+        Generate semantic variable name from element attributes.
+        Produces short, English-only names.
+        
+        Priority:
+        1. Display text (label/value) - most readable
+        2. Last meaningful part of accessibility ID
+        3. Last meaningful part of resource ID
+        4. Fallback: element type
+        
+        Args:
+            info: Element info dict with text, content_desc, res_id
+            var_suffix: Original var suffix from locator strategy
+            type_suffix: Element type suffix (btn, input, lbl, etc.)
+        
+        Returns:
+            str: Clean semantic variable name part (short, English)
+        """
+        # Priority 1: Use display text if available and meaningful
+        display_text = info.get('text', '') or info.get('content_desc', '')
+        if display_text and len(display_text) <= 20:
+            # Check if it's not just numbers or too generic
+            if not display_text.replace(' ', '').isdigit():
+                clean = self.clean_text_for_var(display_text)
+                if 2 <= len(clean) <= 25:
+                    return clean
+        
+        # Priority 2: Extract meaningful part from accessibility ID (iOS style)
+        content_desc = info.get('content_desc', '')
+        if content_desc and '.' in content_desc:
+            # iOS accessibility IDs: "HomeView.searchView.textField"
+            # Extract ONLY the last meaningful part for shorter names
+            parts = content_desc.split('.')
+            
+            for part in reversed(parts):
+                # Skip generic suffixes
+                if part.lower() in ('label', 'view', 'cell', 'button', 'icon', 'image', 
+                                   'text', 'field', 'wrapper', 'container', 'title'):
+                    continue
+                # Parse CamelCase: "userAccountButton" -> "user_account"
+                parsed = self._parse_camel_case(part)
+                if parsed and len(parsed) >= 2:
+                    clean = self.clean_text_for_var(parsed)
+                    if clean:
+                        return clean[:25]
+        
+        # Priority 3: Extract from resource ID (Android style)
+        res_id = info.get('res_id', '')
+        if res_id:
+            # Android resource IDs: "com.app:id/btn_submit"
+            suffix = res_id.split('/')[-1] if '/' in res_id else res_id
+            # Remove common prefixes
+            for prefix in ('btn_', 'tv_', 'et_', 'iv_', 'll_', 'rl_', 'fl_', 'img_', 'lbl_'):
+                if suffix.lower().startswith(prefix):
+                    suffix = suffix[len(prefix):]
+                    break
+            clean = self.clean_text_for_var(suffix)
+            if 2 <= len(clean) <= 25:
+                return clean
+        
+        # Priority 4: Use original var_suffix with cleanup
+        if var_suffix:
+            # If var_suffix contains dots, get only the last meaningful part
+            if '.' in var_suffix:
+                parts = var_suffix.split('.')
+                for part in reversed(parts):
+                    parsed = self._parse_camel_case(part)
+                    if parsed and len(parsed) >= 2 and parsed.lower() not in (
+                        'label', 'view', 'cell', 'button', 'icon', 'image', 'text', 'field'
+                    ):
+                        return self.clean_text_for_var(parsed)[:25]
+            else:
+                clean = self.clean_text_for_var(var_suffix)
+                if 2 <= len(clean) <= 25:
+                    return clean
+        
+        # Fallback
+        return type_suffix
+
+    def _parse_camel_case(self, text: str) -> str:
+        """
+        Parse CamelCase to snake_case.
+        Examples:
+            userAccountButton -> user_account
+            WalletBalanceCell -> wallet_balance
+            notificationsButton -> notifications
+        """
+        if not text:
+            return ""
+        
+        # Insert underscore before uppercase letters
+        result = re.sub(r'([a-z])([A-Z])', r'\1_\2', text)
+        result = result.lower()
+        
+        # Remove trailing type indicators
+        for suffix in ('_button', '_btn', '_label', '_lbl', '_cell', '_view', '_screen', '_icon', '_image', '_field', '_text'):
+            if result.endswith(suffix):
+                result = result[:-len(suffix)]
+                break
+        
+        return result.strip('_')
 
     def safe_xpath_val(self, val: str) -> str:
         """XPath 2.0 concat metodu ile escape"""
         if "'" not in val:
             return f"'{val}'"
-        if '"' not in val:
-            return f'"{val}'
+        if '\"' not in val:
+            return f'\"{val}\"'
 
         # Her iki quote var, concat kullan
         parts = val.split("'")
@@ -618,7 +791,7 @@ class PageAnalyzer:
                     coords['h'] < AnalyzerConstants.MIN_ELEMENT_HEIGHT):
                 return None
 
-            # Filter: Ignored classes without text
+            # Filter: Ignored classes without text (performans için aktif)
             if any(b_cls in cls for b_cls in AnalyzerConstants.IGNORE_CLASSES):
                 if not info["text"] and not info["content_desc"]:
                     return None
@@ -640,15 +813,32 @@ class PageAnalyzer:
                     "strategy": "FALLBACK"
                 }
 
-            if res:
-                # Generate variable name
-                base_text = self.clean_text_for_var(res['var_suffix'])
-                type_suffix = self.get_element_type_suffix(cls, info['res_id'], info['is_password'])
+            # Fallback for text-containing buttons/keys (keyboard support)
+            is_button_or_text = "Button" in str(cls) or "Text" in str(cls) or "Key" in str(cls)
+            if not res and is_button_or_text and info["text"]:
+                safe_txt = self.safe_xpath_val(info["text"])
+                fallback_xpath = f"//{cls}[@text={safe_txt}]"
+                
+                # Eğer unique değilse index ekle
+                if not self._is_unique_in_tree(tree, fallback_xpath):
+                    fallback_xpath = f"({fallback_xpath})[{index + 1}]"
+                
+                res = {
+                    "locator": f"xpath={fallback_xpath}",
+                    "var_suffix": info["text"],
+                    "strategy": "TEXT_FALLBACK"
+                }
 
-                if base_text.endswith(f"_{type_suffix}"):
-                    final_variable_suffix = base_text
+            if res:
+                # Generate variable name using semantic naming
+                type_suffix = self.get_element_type_suffix(cls, info['res_id'], info['is_password'])
+                semantic_name = self.generate_semantic_name(info, res['var_suffix'], type_suffix)
+                
+                # Build final variable suffix
+                if semantic_name.endswith(f"_{type_suffix}"):
+                    final_variable_suffix = semantic_name
                 else:
-                    final_variable_suffix = f"{base_text}_{type_suffix}"
+                    final_variable_suffix = f"{semantic_name}_{type_suffix}"
 
                 if not prefix or len(prefix) < 2:
                     prefix = "page"

@@ -1,16 +1,42 @@
-import time
-import logging
-import threading  # ✅ EKLENDİ: Threading kütüphanesi
-import urllib3.exceptions
-from appium import webdriver
-from appium.options.android import UiAutomator2Options
-from appium.options.ios import XCUITestOptions
-from selenium.webdriver.common.actions.action_builder import ActionBuilder
-from selenium.webdriver.common.actions.pointer_input import PointerInput
-from selenium.webdriver.common.actions import interaction
-from selenium.common.exceptions import WebDriverException
+"""
+DriverManager - Facade Pattern Implementation
+Tüm driver işlemleri için tek giriş noktası.
+Geriye dönük uyumluluk için mevcut API korunmuştur.
 
-# Hata sınıflarını import et
+Modül yapısı:
+- session_manager.py: Session lifecycle (start, attach, quit)
+- action_executor.py: Device interactions (tap, scroll, back)
+- true_attach.py: TrueAttachRemote class
+"""
+import os
+import platform
+import logging
+
+logger = logging.getLogger(__name__)
+
+# macOS için Android SDK yollarını otomatik tanımla
+if platform.system() == "Darwin":
+    android_sdk_path = os.path.expanduser("~/Library/Android/sdk")
+    if os.path.exists(android_sdk_path):
+        os.environ["ANDROID_HOME"] = android_sdk_path
+        os.environ["ANDROID_SDK_ROOT"] = android_sdk_path
+        paths = [
+            os.path.join(android_sdk_path, "platform-tools"),
+            os.path.join(android_sdk_path, "tools"),
+            os.path.join(android_sdk_path, "tools", "bin"),
+            os.environ.get("PATH", "")
+        ]
+        os.environ["PATH"] = ":".join(paths)
+        logger.info(f"✅ Android SDK paths configured: {android_sdk_path}")
+    else:
+        logger.warning(f"⚠️ Android SDK not found: {android_sdk_path}")
+
+# Import sub-modules
+from backend.core.session_manager import SessionManager
+from backend.core.action_executor import ActionExecutor
+from backend.core.true_attach import TrueAttachRemote  # Re-export for compatibility
+
+# Re-export exceptions for backward compatibility
 from backend.core.exceptions import (
     AppiumConnectionError,
     DeviceNotFoundError,
@@ -18,296 +44,165 @@ from backend.core.exceptions import (
     DriverError
 )
 
-logger = logging.getLogger(__name__)
-
 
 class DriverManager:
+    """
+    Facade class that orchestrates SessionManager and ActionExecutor.
+    Maintains backward compatibility with existing API.
+    """
+    
     def __init__(self, config_manager):
-        self.drivers = {}  # {"ANDROID": driver, "IOS": driver}
-        self.platform = "ANDROID"
+        """
+        Args:
+            config_manager: Configuration manager instance
+        """
+        self.session = SessionManager(config_manager)
+        self.actions = ActionExecutor()
         self.config_mgr = config_manager
-        self._lock = threading.RLock()  # ✅ EKLENDİ: Re-entrant Lock (Aynı thread tekrar kilitleyebilir)
-
+    
+    # ==========================================
+    # PROPERTIES - Backward Compatibility
+    # ==========================================
+    
+    @property
+    def drivers(self):
+        """Access to internal drivers dict."""
+        return self.session.drivers
+    
+    @property
+    def platform(self):
+        """Current platform."""
+        return self.session.platform
+    
+    @platform.setter
+    def platform(self, value):
+        """Set current platform."""
+        self.session.platform = value
+    
+    @property
+    def _lock(self):
+        """Access to internal lock."""
+        return self.session._lock
+    
+    @property
+    def pending_session_id(self):
+        """Pending session for attach."""
+        return self.session.pending_session_id
+    
+    @pending_session_id.setter
+    def pending_session_id(self, value):
+        self.session.pending_session_id = value
+    
+    # ==========================================
+    # SESSION MANAGEMENT (Delegated)
+    # ==========================================
+    
     def get_driver(self):
-        """Aktif platformun Appium sürücüsünü döndürür."""
-        # ✅ GÜNCELLENDİ: Okuma işlemi sırasında kilitliyoruz
-        with self._lock:
-            return self.drivers.get(self.platform)
-
-    def get_page_source(self):
-        """Aktif sürücünün sayfa kaynağını (XML) döndürür."""
-        # ✅ GÜNCELLENDİ: Driver'ı güvenli şekilde alıyoruz
-        driver = self.get_driver()
-        if driver:
-            try:
-                # Appium çağrısı thread-safe olmayabilir, bu yüzden burada kilitlemek daha güvenli olabilir
-                # Ancak performans için sadece driver alma anını kilitledik.
-                return driver.page_source
-            except Exception as e:
-                logger.error(f"Failed to get page source: {e}")
-                return None
-        return None
-
-    def take_screenshot(self):
-        """Aktif sürücüden base64 formatında ekran görüntüsü alır."""
-        driver = self.get_driver()
-        if driver:
-            try:
-                return driver.get_screenshot_as_base64()
-            except Exception as e:
-                logger.error(f"Failed to take screenshot: {e}")
-                return None
-        return None
-
-    def is_active(self, platform=None):
-        with self._lock:  # ✅ GÜNCELLENDİ
-            target = platform or self.platform
-            driver = self.drivers.get(target)
-            if not driver:
-                return False
-            try:
-                if driver.session_id:
-                    # Pencere boyutunu sorgulamak driver'ın gerçekten yanıt verip vermediğini test eder
-                    driver.get_window_size()
-                    return True
-                return False
-            except Exception:
-                return False
-
-    def start_driver(self, platform):
-        """Start Appium driver with improved error handling"""
-
-        # ✅ GÜNCELLENDİ: Tüm başlatma süreci kilit altına alındı
-        with self._lock:
-            # Platform değiştirmek session kaybettirmiyor, aktifse geçiş yap.
-            if platform in self.drivers and self.is_active(platform):
-                self.platform = platform
-                logger.info(f"✅ Switching to existing {platform} driver")
-                return self.drivers[platform]
-
-            # Eski driver'ı temizle (varsa)
-            if platform in self.drivers:
-                try:
-                    logger.info(f"🔄 Cleaning up old {platform} driver")
-                    self.drivers[platform].quit()
-                except Exception as e:
-                    logger.warning(f"Failed to quit old driver: {e}")
-                finally:
-                    del self.drivers[platform]
-
-            self.platform = platform
-            logger.info(f"🚀 {platform} Driver Initializing...")
-
-            cfg = self.config_mgr.get_all()
-            driver = None
-            options = None
-
-            # --- OPTIONS AYARLARI ---
-            if platform == "ANDROID":
-                options = UiAutomator2Options()
-                options.platform_name = "Android"
-                options.automation_name = "UIAutomator2"
-                options.device_name = cfg.get("ANDROID_DEVICE")
-                options.app_package = cfg.get("ANDROID_PKG")
-                options.app_activity = cfg.get("ANDROID_ACT")
-                options.no_reset = cfg.get("ANDROID_NO_RESET")
-                options.full_reset = cfg.get("ANDROID_FULL_RESET")
-                options.new_command_timeout = 3600
-                options.set_capability("settings[ignoreUnimportantViews]", True)
-                options.set_capability("settings[waitForIdleTimeout]", 100)
-                options.set_capability("appium:forceAppLaunch", True)
-                options.set_capability("appium:shouldTerminateApp", True)
-
-            else:  # IOS
-                options = XCUITestOptions()
-                options.platform_name = "iOS"
-                options.automation_name = "XCUITest"
-                options.device_name = cfg.get("IOS_DEVICE")
-                options.bundle_id = cfg.get("IOS_BUNDLE")
-                options.udid = cfg.get("IOS_UDID")
-                options.set_capability("appium:xcodeOrgId", cfg.get("IOS_ORG_ID"))
-                options.set_capability("appium:xcodeSigningId", cfg.get("IOS_SIGN_ID"))
-
-                # Kritik iOS Ayarları
-                options.set_capability("appium:usePrebuiltWDA", True)
-                options.set_capability("appium:updatedWDABundleId", "com.facebook.WebDriverAgentRunner.xctrunner")
-                options.set_capability("appium:forceAppLaunch", True)
-                options.set_capability("appium:shouldTerminateApp", True)
-                options.new_command_timeout = 3600
-                options.set_capability("appium:wdaLaunchTimeout", 60000)
-                options.set_capability("appium:wdaConnectionTimeout", 60000)
-
-            # --- DRIVER BAŞLATMA ---
-            try:
-                driver = webdriver.Remote("http://127.0.0.1:4723/wd/hub", options=options)
-
-                self.drivers[platform] = driver
-                logger.info(f"✅ {platform} driver started successfully")
-                return driver
-
-            except urllib3.exceptions.MaxRetryError:
-                raise AppiumConnectionError(
-                    "Cannot connect to Appium server",
-                    "Make sure Appium is running at http://127.0.0.1:4723"
-                )
-
-            except WebDriverException as e:
-                error_msg = str(e).lower()
-
-                # Partially created driver'ı temizle
-                if driver:
-                    try:
-                        driver.quit()
-                    except:
-                        pass
-
-                if platform in self.drivers:
-                    del self.drivers[platform]
-
-                if "device not found" in error_msg or "could not find a device" in error_msg:
-                    raise DeviceNotFoundError(
-                        f"{platform} device not found",
-                        f"Device '{cfg.get(f'{platform}_DEVICE')}' is not connected or not available"
-                    )
-
-                if "app not installed" in error_msg or "activity does not exist" in error_msg:
-                    raise AppNotInstalledError(
-                        "Application not found on device",
-                        f"Package: {cfg.get(f'{platform}_PKG')}"
-                    )
-
-                # Genel Hata
-                logger.error(f"❌ Failed to start {platform} driver: {e}")
-                raise DriverError("WebDriver initialization failed", str(e))
-
-            except Exception as e:
-                # Diğer tüm hatalar
-                logger.error(f"❌ Unexpected error starting {platform} driver: {e}")
-                if platform in self.drivers:
-                    del self.drivers[platform]
-                raise Exception(f"Failed to initialize {platform} driver: {str(e)}")
-
-    def quit_driver(self, platform=None):
-        """Quit driver(s) safely"""
-        # ✅ GÜNCELLENDİ: Çıkış işlemleri kilitlendi
-        with self._lock:
-            if platform:
-                if platform in self.drivers:
-                    try:
-                        logger.info(f"🛑 Quitting {platform} driver")
-                        self.drivers[platform].quit()
-                    except Exception as e:
-                        logger.warning(f"Error quitting {platform} driver: {e}")
-                    finally:
-                        del self.drivers[platform]
-            else:
-                for p in list(self.drivers.keys()):
-                    try:
-                        logger.info(f"🛑 Quitting {p} driver")
-                        self.drivers[p].quit()
-                    except Exception as e:
-                        logger.warning(f"Error quitting {p} driver: {e}")
-                self.drivers = {}
-
+        """Aktif platformun driver'ını döndürür."""
+        return self.session.get_driver()
+    
+    def get_platform(self) -> str:
+        """Aktif platform adını döndürür."""
+        return self.session.get_platform()
+    
+    def is_active(self, platform: str = None) -> bool:
+        """Driver aktif mi kontrol eder."""
+        return self.session.is_active(platform)
+    
+    def start_driver(self, platform: str):
+        """Yeni driver başlatır veya mevcut driver'a geçer."""
+        return self.session.start_driver(platform)
+    
+    def quit_driver(self, platform: str = None):
+        """Driver'ı güvenli şekilde kapatır."""
+        return self.session.quit_driver(platform)
+    
     def quit_all(self):
-        self.quit_driver()
-
-    def get_window_size(self):
+        """Tüm driver'ları kapatır."""
+        return self.session.quit_all()
+    
+    def attach_to_session(self, session_id: str, platform_name: str):
+        """Mevcut bir session'a bağlanır."""
+        return self.session.attach_to_session(session_id, platform_name)
+    
+    def list_active_sessions(self) -> list:
+        """Appium'daki aktif session'ları listeler."""
+        return self.session.list_active_sessions()
+    
+    def get_current_session_info(self) -> dict:
+        """Mevcut session bilgisini döndürür."""
+        return self.session.get_current_session_info()
+    
+    # ==========================================
+    # DATA ACCESS (Delegated)
+    # ==========================================
+    
+    def get_page_source(self) -> str:
+        """Page source (XML) döndürür."""
+        return self.session.get_page_source()
+    
+    def take_screenshot(self) -> str:
+        """Base64 formatında ekran görüntüsü alır."""
+        return self.session.take_screenshot()
+    
+    def get_window_size(self) -> dict:
+        """Ekran boyutlarını döndürür."""
+        return self.session.get_window_size()
+    
+    # ==========================================
+    # DEVICE ACTIONS (Delegated with context)
+    # ==========================================
+    
+    def perform_tap(self, x: int, y: int) -> bool:
+        """Ekrana dokunma işlemi yapar."""
         driver = self.get_driver()
+        platform = self.get_platform()
+        return self.actions.perform_tap(driver, platform, x, y)
+    
+    def perform_scroll(self, direction: str) -> bool:
+        """Ekranı kaydırır."""
+        driver = self.get_driver()
+        platform = self.get_platform()
+        window_size = self.get_window_size()
+        return self.actions.perform_scroll(driver, platform, direction, window_size)
+    
+    def go_back(self) -> bool:
+        """Geri navigasyon yapar."""
+        driver = self.get_driver()
+        return self.actions.go_back(driver)
+    
+    def hide_keyboard(self) -> bool:
+        """Klavyeyi gizler."""
+        driver = self.get_driver()
+        platform = self.get_platform()
+        return self.actions.hide_keyboard(driver, platform)
+    
+    def get_device_logs(self, log_type: str = None) -> list:
+        """Cihaz loglarını alır."""
+        with self._lock:
+            driver = self.get_driver()
+            platform = self.get_platform()
+            return self.actions.get_device_logs(driver, platform, log_type)
+    
+    # ==========================================
+    # LEGACY INTERNAL METHODS (for compat)
+    # ==========================================
+    
+    def _execute_scroll_on_driver(self, platform: str, direction: str):
+        """Legacy scroll method."""
+        driver = self.drivers.get(platform)
         if driver:
-            try:
-                return driver.get_window_size()
-            except Exception as e:
-                logger.error(f"Failed to get window size: {e}")
-                return {"width": 0, "height": 0}
-        return {"width": 0, "height": 0}
-
-    def perform_tap(self, x, y):
-        driver = self.get_driver()
-        if not driver:
-            logger.error("❌ Hata: Tıklama için sürücü aktif değil.")
-            return False
-
-        try:
-            logger.info(f"👉 Tapping at {x}, {y} on {self.platform}")
-            if self.platform == "IOS":
-                driver.execute_script("mobile: tap", {"x": x, "y": y})
-            else:
-                actions = ActionBuilder(driver)
-                p = actions.add_pointer_input(interaction.POINTER_TOUCH, "finger")
-                p.create_pointer_move(duration=0, x=x, y=y)
-                p.create_pointer_down(button=0)
-                p.create_pause(0.05)
-                p.create_pointer_up(button=0)
-                actions.perform()
-            time.sleep(0.5)
-            return True
-        except Exception as e:
-            logger.error(f"Tap failed: {e}")
-            return False
-
-    def perform_scroll(self, direction):
-        driver = self.get_driver()
-        if not driver:
-            logger.error("❌ Hata: Kaydırma için aktif sürücü yok.")
-            return False
-
-        try:
-            if self.platform == "IOS":
-                driver.execute_script("mobile: scroll", {"direction": direction})
-            else:
-                win = self.get_window_size()
-                cx = win['width'] // 2
-                h = win['height']
-                if direction == 'down':
-                    sy, ey = int(h * 0.7), int(h * 0.3)
-                else:
-                    sy, ey = int(h * 0.3), int(h * 0.7)
-
-                actions = ActionBuilder(driver)
-                p = actions.add_pointer_input(interaction.POINTER_TOUCH, "finger")
-                p.create_pointer_move(duration=0, x=cx, y=sy)
-                p.create_pointer_down(button=0)
-                p.create_pause(0.05)
-                p.create_pointer_move(duration=300, x=cx, y=ey)
-                p.create_pointer_up(button=0)
-                actions.perform()
-            time.sleep(0.8)
-            return True
-        except Exception as e:
-            logger.error(f"Scroll failed: {e}")
-            return False
-
-    def go_back(self):
-        driver = self.get_driver()
-        if not driver:
-            return False
-        try:
-            driver.back()
-            time.sleep(0.5)
-            return True
-        except Exception as e:
-            logger.error(f"Back failed: {e}")
-            return False
-
-    def hide_keyboard(self):
-        driver = self.get_driver()
-        if not driver:
-            return False
-
-        try:
-            if self.platform == "IOS":
-                try:
-                    driver.hide_keyboard()
-                except:
-                    driver.execute_script("mobile: hideKeyboard", {"strategy": "tapOutside"})
-            else:
-                try:
-                    driver.hide_keyboard()
-                except:
-                    pass
-            time.sleep(1)
-            return True
-        except Exception as e:
-            logger.warning(f"Hide keyboard failed: {e}")
-            return False
+            window_size = driver.get_window_size()
+            self.actions.perform_scroll(driver, platform, direction, window_size)
+    
+    def _execute_back_on_driver(self, platform: str):
+        """Legacy back method."""
+        driver = self.drivers.get(platform)
+        if driver:
+            self.actions.go_back(driver)
+    
+    def _execute_hide_keyboard_on_driver(self, platform: str):
+        """Legacy keyboard method."""
+        driver = self.drivers.get(platform)
+        if driver:
+            self.actions.hide_keyboard(driver, platform)

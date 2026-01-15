@@ -1,137 +1,324 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QA Red Pather - Ultimate</title>
+    <title>Red Pather - Ultimate</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body class="flex flex-col h-screen select-none">
 
-    <header class="h-16 bg-[#09090b]/95 backdrop-blur-xl border-b border-[#27272a] flex items-center justify-between px-6 z-50 shrink-0 sticky top-0">
+    <header
+        class="h-14 bg-[#09090b]/95 backdrop-blur-xl border-b border-[#27272a] flex items-center justify-between px-4 z-50 shrink-0 sticky top-0">
 
-        <div class="flex items-center gap-3">
-            <div onclick="window.openConfig()" class="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-red-900 flex items-center justify-center shadow-lg shadow-red-900/40 cursor-pointer hover:scale-105 transition-transform" data-tooltip="Settings">
-                <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            </div>
-            <div>
-                <h1 class="text-sm font-bold text-white tracking-wider">QA <span class="text-red-500">RED PATHER</span></h1>
-                <p class="text-[9px] text-gray-500 font-mono tracking-[0.2em] uppercase">Pro Editor</p>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-4 bg-[#121214] border border-[#27272a] rounded-xl px-4 py-2 shadow-inner">
-            <div class="segmented-control" onclick="window.togglePlatform()">
-                <div id="toggle-slider" class="segment-slider"></div>
-                <div id="opt-android" class="segment-option active">ANDROID</div>
-                <div id="opt-ios" class="segment-option">iOS</div>
-            </div>
-            <div class="w-px h-4 bg-[#27272a]"></div>
-
-            <div class="flex items-center gap-2 group">
-                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-wide">Page:</span>
-                <input type="text" id="pagePrefix" value="login" class="bg-transparent text-xs text-white font-mono font-bold outline-none w-20 placeholder-gray-700 focus:w-32 transition-all" placeholder="name">
-            </div>
-
-            <div class="w-px h-4 bg-[#27272a]"></div>
-
-            <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 cursor-pointer tooltip-btn" data-tooltip="Enable Tap & Rescan" onclick="document.getElementById('navMode').click()">
-                    <div class="nav-switch" id="nav-switch-ui"><div class="switch-dot"></div></div>
-                    <input type="checkbox" id="navMode" class="hidden" onchange="window.toggleNavMode(this)">
-                    <span class="text-[10px] font-bold text-gray-400 select-none">NAV MODE</span>
+        <div class="flex items-center gap-2">
+            <!-- Logo -->
+            <div class="flex items-center gap-2 transition-opacity shrink-0">
+                <div
+                    class="w-8 h-8 rounded-lg bg-[#1a1a1a] flex items-center justify-center shadow-lg border border-[#27272a]">
+                    <img src="{{ url_for('static', filename='img/icon.png') }}" alt="RedPather" class="w-6 h-6">
                 </div>
-
-                <div class="flex items-center gap-2 cursor-pointer tooltip-btn" data-tooltip="Validate Locators" onclick="document.getElementById('autoVerify').click()">
-                    <div class="verify-switch active" id="verify-switch-ui"><div class="switch-dot"></div></div>
-                    <input type="checkbox" id="autoVerify" class="hidden" checked onchange="window.toggleVerifyUI(this)">
-                    <span class="text-[10px] font-bold text-gray-400 select-none">VERIFY</span>
+                <div class="hidden sm:block">
+                    <h1 class="text-sm font-black tracking-tight leading-none">
+                        <span class="text-red-500">RED</span><span class="text-white">PATHER</span>
+                    </h1>
                 </div>
             </div>
-        </div>
 
-        <div class="flex items-center">
+            <div class="w-px h-5 bg-[#27272a] hidden md:block"></div>
 
-            <div class="flex items-center gap-1 bg-[#121214] p-1 rounded-lg border border-[#27272a] mr-3">
-                <button onclick="window.performScroll('up')" class="tooltip-btn w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#27272a] text-gray-400 hover:text-white transition-colors" data-tooltip="Scroll Up">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
-                </button>
-                <button onclick="window.performScroll('down')" class="tooltip-btn w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#27272a] text-gray-400 hover:text-white transition-colors" data-tooltip="Scroll Down">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-                </button>
-
-                <button onclick="window.scanScreen()" class="tooltip-btn w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#27272a] text-blue-400 hover:text-blue-300 transition-colors" data-tooltip="Refresh Screen">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                </button>
-
-                <div class="w-px h-4 bg-[#27272a] mx-1"></div>
-
-                <button onclick="window.triggerBack()" class="tooltip-btn w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#27272a] text-gray-400 hover:text-white transition-colors" data-tooltip="System Back">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                </button>
-                <button onclick="window.triggerHideKeyboard()" class="tooltip-btn w-8 h-8 flex items-center justify-center rounded-md hover:bg-[#27272a] text-gray-400 hover:text-white transition-colors" data-tooltip="Hide Keyboard">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3M5 20h14"></path></svg>
-                </button>
+            <!-- Connection Status -->
+            <div id="connectionStatus"
+                class="flex items-center gap-2 px-2 py-1 rounded-full bg-[#18181b] border border-[#27272a] tooltip-btn"
+                data-tooltip="Appium Durumu">
+                <div id="connectionDot" class="w-1.5 h-1.5 rounded-full bg-gray-500"></div>
+                <span id="connectionText" class="text-[8px] font-bold text-gray-500 uppercase hidden lg:block">BAĞLANTI
+                    YOK</span>
             </div>
 
-            <div class="flex items-center gap-2 mr-4">
-                <button onclick="window.copyAllVariables()" id="copyAllBtn" class="hidden opacity-0 scale-95 transition-all duration-300 bg-[#18181b] hover:bg-[#27272a] text-gray-300 border border-[#27272a] hover:border-gray-600 px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 group tooltip-btn" data-tooltip="Copy All Variables">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                    <span>Copy</span>
-                </button>
-                <button onclick="window.scanScreen()" id="scanBtn" class="relative overflow-hidden bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-xs font-bold tracking-wide transition-all shadow-lg shadow-red-900/20 hover:shadow-red-600/40 active:scale-95 tooltip-btn" data-tooltip="Capture Screen">
-                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] animate-[shimmer_2s_infinite]"></div>
-                    <div class="flex items-center gap-2 relative z-10">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                        <span>SCAN</span>
-                    </div>
-                </button>
-            </div>
-            <div class="w-px h-4 bg-[#27272a] mx-2"></div>
+            <div class="w-px h-5 bg-[#27272a]"></div>
 
-            <button id="recordBtn" onclick="window.toggleRecordMode()" class="flex items-center gap-2 px-3 py-1 rounded-full border border-[#27272a] bg-[#18181b] text-gray-400 hover:text-white transition-all text-[10px] font-bold tracking-wider group tooltip-btn" data-tooltip="Start/Stop Recording">
-                <div class="w-2 h-2 rounded-full bg-current transition-transform group-active:scale-90"></div>
-                <span>REC</span>
+            <!-- REC Button -->
+            <button id="recordBtn" onclick="window.toggleRecordMode()"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#27272a] bg-[#18181b] text-gray-400 hover:text-white transition-all text-[9px] font-bold group tooltip-btn"
+                data-tooltip="Kayıt">
+                <div class="w-1.5 h-1.5 rounded-full bg-current transition-transform group-active:scale-75"></div>
+                <span class="hidden md:inline">REC</span>
+                <span id="stepCountBadge" class="hidden px-1 text-[7px] bg-red-600 text-white rounded-full">0</span>
             </button>
         </div>
+
+        <!-- Middle: Control Center -->
+        <div
+            class="flex items-center gap-2 bg-[#121214]/50 border border-[#27272a] rounded-xl px-2 py-1 shadow-inner max-w-md xl:max-w-none group hover:border-[#3f3f46] transition-colors">
+            <div class="segmented-control scale-90 origin-left" onclick="window.togglePlatform()">
+                <div id="toggle-slider" class="segment-slider"></div>
+                <div id="opt-android" class="segment-option active">AND</div>
+                <div id="opt-ios" class="segment-option">iOS</div>
+            </div>
+
+            <div class="w-px h-4 bg-[#27272a]"></div>
+
+            <div class="flex items-center gap-1.5">
+                <svg class="w-3 h-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <input type="text" id="pagePrefix" value="login"
+                    class="bg-transparent text-[11px] text-white font-mono font-bold outline-none w-16 placeholder-gray-700 focus:w-24 transition-all"
+                    placeholder="page">
+                <button onclick="window.aiRecognizePage()"
+                    class="w-5 h-5 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors tooltip-btn"
+                    data-tooltip="AI İsim Öner">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="w-px h-4 bg-[#27272a] hidden sm:block"></div>
+
+            <div class="hidden sm:flex items-center gap-3">
+                <div class="flex items-center gap-1.5 cursor-pointer tooltip-btn" data-tooltip="Nav Modu"
+                    onclick="document.getElementById('navMode').click()">
+                    <div class="nav-switch scale-75" id="nav-switch-ui">
+                        <div class="switch-dot"></div>
+                    </div>
+                    <input type="checkbox" id="navMode" class="hidden" onchange="window.toggleNavMode(this)">
+                    <span class="text-[9px] font-bold text-gray-500 hidden xl:block uppercase">NAV</span>
+                </div>
+
+                <div class="flex items-center gap-1.5 cursor-pointer tooltip-btn" data-tooltip="Doğrula"
+                    onclick="document.getElementById('autoVerify').click()">
+                    <div class="verify-switch active scale-75" id="verify-switch-ui">
+                        <div class="switch-dot"></div>
+                    </div>
+                    <input type="checkbox" id="autoVerify" class="hidden" checked
+                        onchange="window.toggleVerifyUI(this)">
+                    <span class="text-[9px] font-bold text-gray-500 hidden xl:block uppercase">VERIFY</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Actions -->
+        <div class="flex items-center gap-1 md:gap-3">
+            <!-- Action Toolbar - Refined Glass Container -->
+            <div
+                class="flex items-center gap-0.5 bg-[#121214]/80 backdrop-blur-md p-1 rounded-xl border border-white/5 shadow-2xl hidden md:flex">
+                <button onclick="window.performScroll('up')"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all active:scale-90 tooltip-btn"
+                    data-tooltip="Yukarı"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7">
+                        </path>
+                    </svg></button>
+                <button onclick="window.performScroll('down')"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all active:scale-90 tooltip-btn"
+                    data-tooltip="Aşağı"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7">
+                        </path>
+                    </svg></button>
+                <div class="w-px h-3.5 bg-white/10 mx-1"></div>
+                <button onclick="window.scanScreen()"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-blue-500/20 text-blue-400/80 hover:text-blue-400 transition-all active:scale-90 tooltip-btn"
+                    data-tooltip="Ekranı Yenile"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                        </path>
+                    </svg></button>
+                <button onclick="window.triggerBack()"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all active:scale-90 tooltip-btn"
+                    data-tooltip="Geri"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M11 17l-5-5m0 0l5-5m-5 5h12"></path>
+                    </svg></button>
+                <button onclick="window.triggerHideKeyboard()"
+                    class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all active:scale-90 tooltip-btn"
+                    data-tooltip="Klavyeyi Gizle"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 14l-7 7m0 0l-7-7m7 7V3M5 20h14"></path>
+                    </svg></button>
+            </div>
+
+            <!-- Main Actions -->
+            <div class="flex items-center gap-2 ml-1">
+                <button onclick="window.copyAllVariables()" id="copyAllBtn"
+                    class="hidden opacity-0 scale-95 transition-all duration-300 bg-[#18181b] hover:bg-[#27272a] text-gray-300 border border-[#27272a] hover:border-white/20 px-3 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1.5 active:scale-95 group tooltip-btn"
+                    data-tooltip="Değişkenleri Kopyala">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <span class="hidden xl:inline">KOPYALA</span>
+                </button>
+
+                <button onclick="window.translateNamesWithAI()" id="translateAIBtn"
+                    class="hidden opacity-0 scale-95 transition-all duration-300 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1.5 active:scale-95 group tooltip-btn border border-white/10"
+                    data-tooltip="AI ile İsimleri Çevir">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                    </svg>
+                    <span class="hidden xl:inline">AI ÇEVİR</span>
+                </button>
+
+                <button onclick="window.copyAllWithAI()" id="copyAllAIBtn"
+                    class="hidden opacity-0 scale-95 transition-all duration-300 relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 hover:shadow-purple-500/20 text-white px-3.5 py-2 rounded-xl text-[10px] font-bold flex items-center gap-2 shadow-lg active:scale-95 group tooltip-btn border border-white/10"
+                    data-tooltip="AI Keywords">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000">
+                    </div>
+                    <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <span class="relative z-10 hidden lg:inline tracking-wide">AI KEYWORDS</span>
+                    <svg id="aiLoadingSpinner" class="hidden w-3.5 h-3.5 animate-spin relative z-10" fill="none"
+                        viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                </button>
+
+                <button onclick="window.scanScreen()" id="scanBtn"
+                    class="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white px-5 py-2 rounded-xl text-[10px] font-black tracking-[0.1em] transition-all shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:shadow-[0_0_25px_rgba(220,38,38,0.4)] active:scale-95 flex items-center gap-2 tooltip-btn border border-white/10"
+                    data-tooltip="Tümünü Yenile">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span class="hidden sm:inline">SCAN</span>
+                </button>
+
+
+                <!-- Utility Buttons Container -->
+                <div class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
+                    <button onclick="window.toggleLogPanel()"
+                        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all tooltip-btn"
+                        data-tooltip="Loglar">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </button>
+
+                    <button onclick="window.openConfig()"
+                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-all shadow-lg tooltip-btn border border-white/10"
+                        data-tooltip="Ayarlar">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </header>
 
     <div id="configModal" class="modal-overlay">
+
         <div class="modal-box config-modal-box">
             <div class="flex flex-col gap-4">
                 <div class="flex items-center gap-3 border-b border-[#27272a] pb-3">
                     <div class="w-10 h-10 rounded-lg bg-[#27272a] flex items-center justify-center text-gray-300">
-                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-white">Appium Settings</h3>
-                        <p class="text-[11px] text-gray-400">Configure device details.</p>
+                        <h3 class="text-sm font-bold text-white">Appium Ayarları</h3>
+                        <p class="text-[11px] text-gray-400">Cihaz detaylarını yapılandırın.</p>
                     </div>
                 </div>
 
                 <div>
-                    <h4 class="section-title">ANDROID</h4>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div><label class="config-label">Package</label><input type="text" id="conf_android_pkg" class="config-input"></div>
-                        <div><label class="config-label">Activity</label><input type="text" id="conf_android_act" class="config-input"></div>
-                        <div class="col-span-2"><label class="config-label">Device Name</label><input type="text" id="conf_android_device" class="config-input" placeholder="emulator-5554"></div>
+                    <!-- Profiller burada dinamik olarak enjekte edilecek (profileSection) -->
+
+                    <h4 class="section-title">🔗 OTURUMA BAĞLAN (ATTACH)</h4>
+                    <div class="space-y-3">
+                        <p class="text-[10px] text-gray-500">Başka bir araçla başlatılmış aktif Appium oturumuna
+                            bağlanın</p>
+                        <div class="flex gap-2">
+                            <button onclick="window.refreshSessions()"
+                                class="flex-1 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 rounded text-[10px] font-bold transition-all">
+                                🔄 Oturumları Yenile
+                            </button>
+                        </div>
+                        <select id="session-list"
+                            class="w-full bg-zinc-900/50 text-[11px] text-zinc-300 border border-[#27272a] rounded px-2 py-2 focus:outline-none focus:border-red-500/30">
+                            <option value="">-- Bir oturum seçin --</option>
+                        </select>
+                        <button onclick="window.attachToSelectedSession()"
+                            class="w-full py-2 bg-purple-600/20 hover:bg-purple-600/40 text-purple-400 border border-purple-500/30 rounded text-[10px] font-bold uppercase transition-all">
+                            🔗 Oturuma Bağlan
+                        </button>
                     </div>
 
-                    <h4 class="section-title">iOS (XCUITest)</h4>
+                    <h4 class="section-title">AI AYARLARI</h4>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div><label class="config-label">Gemini API Anahtarı</label><input type="password"
+                                id="conf_gemini_key" class="config-input" placeholder="API anahtarınızı yapıştırın">
+                        </div>
+                        <div>
+                            <label class="config-label">Genel AI Talimatları</label>
+                            <textarea id="conf_ai_prompt" class="config-input h-14 py-2 resize-none"
+                                placeholder="Global kurallar (Örn: Yanıtları her zaman Türkçe ver)"></textarea>
+                        </div>
+                        <div class="mt-2">
+                            <label class="config-label">AI Denetim Prompt Listesi</label>
+                            <div id="conf_ai_prompts_container"
+                                class="space-y-2 max-h-32 overflow-y-auto bg-black/20 p-2 rounded border border-[#27272a]">
+                                <!-- Prompts will lead here -->
+                            </div>
+                            <button onclick="window.settings.addPromptRow()"
+                                class="mt-2 w-full py-1.5 border border-dashed border-[#3f3f46] text-[10px] text-gray-500 hover:text-white hover:border-gray-400 transition-all rounded uppercase font-bold">+
+                                Yeni Denetim Promptu Ekle</button>
+                        </div>
+                    </div>
+
+                    <h4 class="section-title">JIRA ENTEGRASYONU 🔗</h4>
                     <div class="grid grid-cols-2 gap-3">
-                        <div><label class="config-label">Bundle ID</label><input type="text" id="conf_ios_bundle" class="config-input"></div>
-                        <div><label class="config-label">Device Name</label><input type="text" id="conf_ios_device" class="config-input"></div>
-                        <div class="col-span-2"><label class="config-label">UDID</label><input type="text" id="conf_ios_udid" class="config-input"></div>
-                        <div><label class="config-label">Xcode Org ID</label><input type="text" id="conf_ios_org" class="config-input"></div>
-                        <div><label class="config-label">Signing ID</label><input type="text" id="conf_ios_sign" class="config-input" value="iPhone Developer"></div>
+                        <div class="col-span-2"><label class="config-label">Jira Base URL</label><input type="text"
+                                id="conf_jira_url" class="config-input" placeholder="https://yourcompany.atlassian.net">
+                        </div>
+                        <div><label class="config-label">Email</label><input type="text" id="conf_jira_email"
+                                class="config-input" placeholder="you@company.com"></div>
+                        <div><label class="config-label">Proje Anahtarı</label><input type="text" id="conf_jira_project"
+                                class="config-input" placeholder="QA"></div>
+                        <div class="col-span-2"><label class="config-label">API Token</label><input type="password"
+                                id="conf_jira_token" class="config-input" placeholder="Jira API token'ınızı yapıştırın">
+                        </div>
+                        <div class="col-span-2">
+                            <button onclick="window.testJiraConnection()"
+                                class="w-full py-1.5 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 rounded text-[10px] font-bold uppercase transition-all">
+                                🔗 Jira Bağlantısını Test Et
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <div class="flex gap-3 justify-end mt-4 pt-3 border-t border-[#27272a]">
-                    <button onclick="document.getElementById('configModal').classList.remove('open')" class="text-xs font-bold text-gray-400 hover:text-white px-3 py-2 rounded transition border border-transparent hover:border-[#3f3f46]">Cancel</button>
-                    <button onclick="window.saveConfig()" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-5 py-2 rounded transition shadow-lg shadow-red-900/30">Save & Restart</button>
+                    <button onclick="document.getElementById('configModal').classList.remove('open')"
+                        class="text-xs font-bold text-gray-400 hover:text-white px-3 py-2 rounded transition border border-transparent hover:border-[#3f3f46]">Vazgeç</button>
+                    <button onclick="window.saveConfig()"
+                        class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-5 py-2 rounded transition shadow-lg shadow-red-900/30">Kaydet
+                        & Restart</button>
                 </div>
             </div>
         </div>
@@ -141,21 +328,31 @@
         <div class="modal-box">
             <div class="flex flex-col gap-4">
                 <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-full bg-red-900/30 flex items-center justify-center text-red-500 shrink-0">
-                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    <div
+                        class="w-12 h-12 rounded-full bg-red-900/30 flex items-center justify-center text-red-500 shrink-0">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
                     </div>
                     <div>
-                        <h3 class="text-sm font-bold text-white">Save Changes?</h3>
-                        <p class="text-[11px] text-gray-400 mt-1 leading-tight">Confirming will update this variable.</p>
+                        <h3 class="text-sm font-bold text-white">Değişiklikleri Kaydet?</h3>
+                        <p class="text-[11px] text-gray-400 mt-1 leading-tight">Onaylarsanız bu değişken
+                            güncellenecektir.
+                        </p>
                     </div>
                 </div>
                 <div class="bg-[#09090b] p-3 rounded border border-[#27272a] shadow-inner">
-                    <span class="text-[9px] text-gray-500 font-bold block mb-1">NEW VALUE:</span>
+                    <span class="text-[9px] text-gray-500 font-bold block mb-1">YENİ DEĞER:</span>
                     <code id="modalNewValue" class="text-xs text-red-400 font-mono break-all block">...</code>
                 </div>
                 <div class="flex gap-3 justify-end mt-2">
-                    <button id="modalCancelBtn" class="text-xs font-bold text-gray-400 hover:text-white px-3 py-2 rounded transition border border-transparent hover:border-[#3f3f46]">Cancel (Esc)</button>
-                    <button id="modalConfirmBtn" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-5 py-2 rounded transition shadow-lg shadow-red-900/30">Save (Enter)</button>
+                    <button id="modalCancelBtn"
+                        class="text-xs font-bold text-gray-400 hover:text-white px-3 py-2 rounded transition border border-transparent hover:border-[#3f3f46]">İptal
+                        (Esc)</button>
+                    <button id="modalConfirmBtn"
+                        class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold px-5 py-2 rounded transition shadow-lg shadow-red-900/30">Kaydet
+                        (Enter)</button>
                 </div>
             </div>
         </div>
@@ -166,33 +363,58 @@
     <main class="flex-1 flex overflow-hidden relative bg-[#09090b]">
         <svg id="connector-layer">
             <path id="connector-path" class="connector-path" d="" style="display:none;" />
-            <circle id="connector-dot-list" cx="0" cy="0" r="3" fill="#ef4444" style="display:none;"/>
-            <circle id="connector-dot-img" cx="0" cy="0" r="4" fill="#ef4444" style="display:none;"/>
+            <circle id="connector-dot-list" cx="0" cy="0" r="3" fill="#ef4444" style="display:none;" />
+            <circle id="connector-dot-img" cx="0" cy="0" r="4" fill="#ef4444" style="display:none;" />
         </svg>
 
-        <div class="w-5/12 bg-[#000000] flex items-center justify-center relative border-r border-[#27272a] overflow-hidden select-none">
-            <div id="loading" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div
+            class="w-5/12 bg-[#000000] flex items-center justify-center relative border-r border-[#27272a] overflow-hidden select-none">
+            <div id="loading"
+                class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
                 <div class="relative w-20 h-20">
                     <div class="absolute inset-0 border-4 border-red-900 rounded-full"></div>
                     <div class="absolute inset-0 border-4 border-t-red-500 rounded-full animate-spin"></div>
                 </div>
-                <p id="loading-text" class="mt-4 text-red-500 font-mono text-xs animate-pulse tracking-widest">ANALYZING...</p>
+                <p id="loading-text" class="mt-4 text-red-500 font-mono text-xs animate-pulse tracking-widest">
+                    ANALİZ EDİLİYOR...</p>
             </div>
-            <div id="device-wrapper" class="relative hidden shadow-2xl rounded-2xl border border-[#3f3f46] overflow-hidden" style="max-height: 90vh;">
-                <img id="screenshot" src="" class="block h-full w-auto object-contain max-h-[90vh] opacity-90 hover:opacity-100 transition-opacity">
+            <div id="device-wrapper"
+                class="relative hidden shadow-2xl rounded-2xl border border-[#3f3f46] overflow-hidden"
+                style="max-height: 90vh;">
+                <img id="screenshot" src=""
+                    class="block h-full w-auto object-contain max-h-[90vh] opacity-90 hover:opacity-100 transition-opacity cursor-crosshair"
+                    onclick="window.handleScreenshotClick(event)">
                 <div id="overlays" class="absolute inset-0 w-full h-full pointer-events-none"></div>
             </div>
-            <div id="empty-state" class="text-center opacity-40"><div class="text-6xl mb-4">📱</div><p class="text-sm font-mono text-gray-500">Waiting for device...</p></div>
+            <div id="empty-state" class="text-center opacity-40">
+                <div class="text-6xl mb-4">📱</div>
+                <p class="text-sm font-mono text-gray-500">Cihaz bekleniyor...</p>
+            </div>
         </div>
 
         <div class="w-7/12 bg-[#09090b] flex flex-col">
             <div class="px-4 py-3 border-b border-[#27272a] bg-[#09090b] flex justify-between items-center">
-                <div class="segmented-control h-7 border border-[#52525b]" id="view-toggle">
-                    <div id="view-slider" class="segment-slider w-[calc(50%-2px)] bg-red-600"></div>
-                    <div id="view-list" class="segment-option active" onclick="window.toggleSourceView('list')">ELEMENT LIST</div>
-                    <div id="view-source" class="segment-option" onclick="window.toggleSourceView('source')">RAW SOURCE</div>
+                <div class="segmented-control" id="view-toggle">
+                    <div id="view-slider" class="segment-slider"></div>
+                    <div id="view-list" class="segment-option active" onclick="window.toggleSourceView('list')">ELEMAN
+                        LİSTESİ</div>
+                    <div id="view-source" class="segment-option" onclick="window.toggleSourceView('source')">HAM KAYNAK
+                        (XML)</div>
                 </div>
-                <span id="element-count" class="text-[10px] bg-[#27272a] text-gray-400 px-2 py-1 rounded-full font-mono">0</span>
+                <span id="element-count"
+                    class="text-[10px] bg-[#27272a] text-gray-400 px-2 py-1 rounded-full font-mono">0</span>
+            </div>
+
+            <!-- Element Search -->
+            <div class="px-3 pt-2">
+                <div class="relative">
+                    <input type="text" id="elementSearchInput" placeholder="🔍 Element ara... (Cmd+F)"
+                        class="w-full bg-[#18181b] border border-[#27272a] rounded-lg px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                        oninput="window.filterElements(this.value)">
+                    <button onclick="document.getElementById('elementSearchInput').value=''; window.filterElements('')"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white text-xs hidden"
+                        id="clearSearchBtn">✕</button>
+                </div>
             </div>
 
             <div id="elements-list" class="flex-1 overflow-y-auto p-3 space-y-2 pb-20" style="display:block;"></div>
@@ -204,11 +426,172 @@
         </div>
     </main>
 
-<!-- Load services first -->
+    <!-- Load services first -->
+    <!-- AI Audit Panel (Drawer) -->
+    <div id="audit-panel"
+        class="fixed top-0 right-0 w-80 h-full bg-[#18181b]/95 backdrop-blur-xl border-l border-[#27272a] transform translate-x-full transition-transform duration-300 z-[100] flex flex-col shadow-2xl">
+        <div class="p-4 border-b border-[#27272a] flex items-center justify-between bg-black/20">
+            <div class="flex items-center gap-2">
+                <span class="text-lg">✨</span>
+                <h3 class="text-sm font-bold text-white uppercase tracking-widest">AI Audit</h3>
+            </div>
+            <button onclick="window.closeAuditPanel()" class="text-gray-500 hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="px-4 py-2 border-b border-[#27272a] bg-zinc-900/50">
+            <div class="flex flex-col gap-2">
+                <label class="text-[9px] font-bold text-gray-500 uppercase">Analysis Language & Style</label>
+                <select id="audit-prompt-select"
+                    class="bg-zinc-800 text-xs text-zinc-300 border border-zinc-700 rounded px-2 py-1.5 focus:outline-none focus:border-red-500/50 transition-colors">
+                    <option value="Yanıtı Türkçe ver.">🇹🇷 Türkçe (Varsayılan)</option>
+                    <option value="Give response in English.">🇺🇸 English</option>
+                    <option value="Yanıtı Türkçe ver. Erişilebilirlik (Accessibility) odaklı detaylı analiz yap.">♿
+                        Erişilebilirlik Odaklı</option>
+                    <option value="Yanıtı Türkçe ver. Sadece görsel hatalara (UI Bugs) odaklan.">🎨 UI Hataları Odaklı
+                    </option>
+                    <option value="Yanıtı Türkçe ver. UX ve akış iyileştirmelerine odaklan.">🧠 UX Odaklı</option>
+                </select>
+                <input type="text" id="audit-custom-prompt" placeholder="Veya özel talimatlar yazın..."
+                    class="bg-zinc-900/80 text-[11px] text-zinc-400 border border-zinc-800 rounded px-2 py-1.5 focus:outline-none focus:border-purple-500/30">
+            </div>
+        </div>
+        <div id="audit-content" class="flex-1 overflow-y-auto p-4 space-y-4 font-inter">
+            <div class="text-center text-gray-500 py-20">
+                <p class="text-xs italic">Analiz sonuçlarını görmek için denetimi başlatın...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Panel (Bottom Drawer) -->
+    <div id="log-panel"
+        class="fixed bottom-0 left-0 w-full h-64 bg-[#09090b]/95 backdrop-blur-xl border-t border-[#27272a] transform translate-y-full transition-transform duration-300 z-[90] flex flex-col shadow-2xl">
+        <div class="px-4 py-2 border-b border-[#27272a] flex items-center justify-between bg-black/20">
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    <h3 class="text-[10px] font-bold text-white uppercase tracking-widest">Device Logs</h3>
+                </div>
+                <select id="log-type-select" onchange="window.clearLogs()"
+                    class="bg-zinc-800 text-[10px] text-zinc-400 border border-zinc-700 rounded px-2 py-0.5 outline-none focus:border-green-500/50 transition-colors">
+                    <option value="">Logcat (Android)</option>
+                    <option value="syslog">Syslog (iOS)</option>
+                    <option value="crashlog">Crash Log</option>
+                    <option value="server">Appium Server</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="window.clearLogs()"
+                    class="text-[10px] text-gray-500 hover:text-white transition-colors flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Temizle
+                </button>
+                <div class="w-px h-3 bg-[#27272a] mx-1"></div>
+                <button onclick="window.toggleLogPanel()" class="text-gray-500 hover:text-white transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="log-content" class="flex-1 overflow-y-auto p-4 space-y-0.5 font-mono selection:bg-green-500/30">
+            <div class="text-gray-600 italic text-[10px]">Log akışı başlatılıyor... Göstermek/gizlemek için LOGLAR'a
+                tıklayın.</div>
+        </div>
+    </div>
+
+    <!-- AI Keywords Modal -->
+    <div id="aiKeywordsModal" class="fixed inset-0 z-[9999] hidden">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="window.closeAIKeywordsModal()"></div>
+
+        <!-- Modal Content -->
+        <div
+            class="absolute inset-4 md:inset-10 lg:inset-20 bg-gradient-to-br from-zinc-900 via-zinc-900 to-purple-900/20 rounded-2xl border border-purple-500/30 shadow-2xl shadow-purple-900/50 flex flex-col overflow-hidden">
+
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/80">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-purple-900/50">
+                        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white">AI Generated Keywords</h2>
+                        <p class="text-xs text-zinc-400">Robot Framework variables and keywords</p>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="flex items-center gap-4">
+                    <div class="text-center px-3 py-1 rounded-lg bg-violet-500/20 border border-violet-500/30">
+                        <span id="aiVarCount" class="text-lg font-bold text-violet-400">0</span>
+                        <span class="text-[10px] text-violet-300 block">Variables</span>
+                    </div>
+                    <div class="text-center px-3 py-1 rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/30">
+                        <span id="aiKwCount" class="text-lg font-bold text-fuchsia-400">0</span>
+                        <span class="text-[10px] text-fuchsia-300 block">Keywords</span>
+                    </div>
+                </div>
+
+                <!-- Close Button -->
+                <button onclick="window.closeAIKeywordsModal()"
+                    class="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 p-4 overflow-hidden">
+                <textarea id="aiKeywordsContent"
+                    class="w-full h-full bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-sm font-mono text-green-400 resize-none focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+                    placeholder="AI generated content will appear here..." spellcheck="false"></textarea>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex items-center justify-between px-6 py-4 border-t border-zinc-800 bg-zinc-900/80">
+                <p class="text-xs text-zinc-500">
+                    💡 Tip: İçeriği düzenleyebilirsiniz. Değişiklikler kopyalandığında korunur.
+                </p>
+                <div class="flex items-center gap-3">
+                    <button onclick="window.closeAIKeywordsModal()"
+                        class="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-medium transition-colors">
+                        İptal
+                    </button>
+                    <button onclick="window.copyAIKeywordsFromModal()"
+                        class="px-6 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-bold shadow-lg shadow-purple-900/40 hover:shadow-purple-600/50 transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Kopyala
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ url_for('static', filename='js/services/api.service.js') }}"></script>
+
     <script src="{{ url_for('static', filename='js/services/state.service.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/components/ui-manager.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/error-handler.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/loading-states.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/keyboard-shortcuts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/session-reconnect.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/config-profiles.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/settings-manager.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/export-manager.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/xml-tree.js') }}"></script>
@@ -216,8 +599,14 @@
     <script src="{{ url_for('static', filename='js/components/element-list.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/context-menu.js') }}"></script>
 
-    <script src="{{ url_for('static', filename='js/constant.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/constants.js') }}"></script>
+
+    <!-- Controllers (Modular) -->
+    <script src="{{ url_for('static', filename='js/controllers/ai-controller.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/controllers/log-controller.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/controllers/device-controller.js') }}"></script>
+
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
-</html>
 
+</html>

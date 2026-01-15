@@ -47,6 +47,17 @@ class StateService {
 
         // Subscribers map: { path: [callbacks] }
         this.subscribers = {};
+
+        // SessionStorage'dan kayıtlı adımları yükle (sayfa yenilemesinde korusun)
+        const savedSteps = sessionStorage.getItem('recorder_steps');
+        if (savedSteps) {
+            try {
+                this.state.recorder.steps = JSON.parse(savedSteps);
+                window.debug?.log('📝 Loaded', this.state.recorder.steps.length, 'steps from sessionStorage');
+            } catch (e) {
+                console.warn('Failed to load saved steps from sessionStorage');
+            }
+        }
     }
 
     /**
@@ -166,7 +177,16 @@ class StateService {
         };
         steps.push(newStep);
         this.set('recorder.steps', steps);
-        console.log("Step Recorded:", newStep);
+
+        // SessionStorage'a kaydet
+        sessionStorage.setItem('recorder_steps', JSON.stringify(steps));
+        window.debug?.log("Step Recorded:", newStep);
+
+        // ✅ YENİ: Step counter badge güncelle
+        const badge = document.getElementById('stepCountBadge');
+        if (badge && this.get('recorder.isRecording')) {
+            badge.textContent = steps.length;
+        }
     }
 
     /**
@@ -174,6 +194,7 @@ class StateService {
      */
     clearSteps() {
         this.set('recorder.steps', []);
+        sessionStorage.removeItem('recorder_steps');
     }
 
     // ====================
@@ -300,7 +321,7 @@ class StateService {
      * Log current state (debug)
      */
     logState() {
-        console.log('%c[State Service]', 'color: #ef4444; font-weight: bold');
+        window.debug?.log('%c[State Service]', 'color: #ef4444; font-weight: bold');
         console.table(this.getState());
     }
 }

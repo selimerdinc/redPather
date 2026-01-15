@@ -27,26 +27,30 @@ class ContextMenu {
 
         const actions = [
             {
-                label: '✍️ Send Keys',
-                action: () => window.app.handleSendKeys(targetElement) // ✅ this.activeElement yerine targetElement kullanıyoruz
+                label: '✍️ Metin Gönder',
+                action: () => window.app.handleSendKeys(targetElement)
             },
             {
-                label: '👁️ Verify Visibility',
+                label: '👁️ Görünürlüğü Doğrula',
                 action: () => window.app.handleAssertion('visibility', targetElement)
             },
             {
-                label: 'abc Verify Text',
+                label: 'abc Metni Doğrula',
                 action: () => window.app.handleAssertion('text', targetElement)
             },
             { type: 'separator' },
             {
-                label: '📋 Copy Locator',
+                label: '📋 Lokasyonu Kopyala',
                 action: () => {
                     if (targetElement && targetElement.locator) {
                         navigator.clipboard.writeText(targetElement.locator);
-                        window.app.ui.showToast('Copied', 'Locator copied to clipboard');
+                        window.app.ui.showToast('Kopyalandı', 'Lokasyon panoya kopyalandı');
                     }
                 }
+            },
+            {
+                label: '🔗 Jira Kaydı Oluştur',
+                action: () => window.createJiraIssue(targetElement)
             }
         ];
 

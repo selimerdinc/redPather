@@ -1,13 +1,11 @@
-version: '3.8'
-
 services:
   # Red Pather Web Arayüzü
   redpather:
     build: .
     ports:
-      - "5000:5000"
+      - "5005:5005"
     volumes:
-      - .:/app  # Geliştirme yaparken kodu canlı senkronize et
+      - .:/app # Geliştirme yaparken kodu canlı senkronize et
     environment:
       - APPIUM_HOST=appium
       - APPIUM_PORT=4723
@@ -26,7 +24,7 @@ services:
     # Not: Gerçek cihazlara erişim için --privileged gerekebilir
     privileged: true
     volumes:
-      - /dev/bus/usb:/dev/bus/usb  # USB cihazlarına erişim (Linux için)
+      - /dev/bus/usb:/dev/bus/usb # USB cihazlarına erişim (Linux için)
       # - ~/.android:/root/.android  # Emulator erişimi için (Opsiyonel)
     networks:
       - testing_net

@@ -3,8 +3,15 @@ from flask import Flask
 # Blueprintleri import et
 from .scan import scan_bp
 from .config import config_bp
-from .actions import actions_bp
 from .main import main_bp
+from .ai import ai_bp
+from .sessions import sessions_bp
+from .jira import jira_bp
+
+# Modular action blueprints
+from .tap_actions import tap_bp
+from .input_actions import input_bp
+from .navigation_actions import navigation_bp
 
 
 def register_blueprints(app: Flask):
@@ -19,4 +26,11 @@ def register_blueprints(app: Flask):
     # API Servisleri
     app.register_blueprint(scan_bp, url_prefix='/api')
     app.register_blueprint(config_bp, url_prefix='/api')
-    app.register_blueprint(actions_bp, url_prefix='/api')
+    app.register_blueprint(ai_bp, url_prefix='/api')
+    app.register_blueprint(sessions_bp, url_prefix='/api/sessions')
+    app.register_blueprint(jira_bp, url_prefix='/api/jira')
+    
+    # Modular Action Blueprints (tap, input, navigation)
+    app.register_blueprint(tap_bp, url_prefix='/api')
+    app.register_blueprint(input_bp, url_prefix='/api')
+    app.register_blueprint(navigation_bp, url_prefix='/api')

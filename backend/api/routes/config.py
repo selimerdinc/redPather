@@ -5,6 +5,7 @@ import logging
 from flask import Blueprint, request, jsonify
 
 from backend.core.context import config_mgr, driver_mgr
+from backend.core.profile_manager import profile_mgr
 from backend.core.exceptions import ConfigurationError
 from backend.api.middleware import create_error_response, create_success_response
 
@@ -23,7 +24,15 @@ ALLOWED_CONFIG_KEYS = {
     'IOS_UDID',
     'IOS_PLATFORM_VER',
     'IOS_ORG_ID',
-    'IOS_SIGN_ID'
+    'IOS_SIGN_ID',
+    'GEMINI_API_KEY',
+    'AI_CUSTOM_PROMPT',
+    'AI_AUDIT_PROMPTS',
+    # Jira Integration
+    'JIRA_URL',
+    'JIRA_EMAIL',
+    'JIRA_PROJECT',
+    'JIRA_TOKEN'
 }
 
 
@@ -89,3 +98,30 @@ def handle_config():
             "Failed to handle configuration",
             str(e)
         )), 500
+
+
+@config_bp.route('/profiles', methods=['GET', 'POST'])
+def handle_profiles():
+    """
+    Handle profile persistence
+    GET: Return all profiles
+    POST: Update all profiles
+    """
+    try:
+        if request.method == 'GET':
+            profiles = profile_mgr.get_all()
+            return jsonify(create_success_response(data=profiles))
+
+        if request.method == 'POST':
+            if not isinstance(request.json, list):
+                raise ConfigurationError("Profiles data must be a list")
+            
+            success = profile_mgr.update_all(request.json)
+            if success:
+                return jsonify(create_success_response(message="Profiles updated successfully"))
+            else:
+                return jsonify(create_error_response("Failed to save profiles")), 500
+
+    except Exception as e:
+        logger.error(f"Profiles handler error: {e}", exc_info=True)
+        return jsonify(create_error_response("Failed to handle profiles", str(e))), 500
