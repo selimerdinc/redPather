@@ -43,23 +43,25 @@ class ApiService {
                 const data = await response.json();
 
                 if (!response.ok) {
+                    // Backend create_error_response içindeki message'ı al
+                    const errorMsg = data.message || data.error?.message || 'İstek başarısız oldu';
                     throw new ApiError(
-                        data.error?.message || 'Request failed',
+                        errorMsg,
                         response.status,
-                        data.error?.message || 'An error occurred',
-                        data.error?.details
+                        errorMsg,
+                        data.details || data.error?.details
                     );
                 }
                 return data.data || data;
 
             } catch (error) {
                 lastError = error;
-                if (error.name === 'AbortError') throw new ApiError('Request timeout', 504, 'Request took too long.', 'Server timeout');
+                if (error.name === 'AbortError') throw new ApiError('İstek zaman aşımı', 504, 'İşlem çok uzun sürdü.', 'Sunucu zaman aşımı');
                 if (error.statusCode && error.statusCode >= 400 && error.statusCode < 500) throw error;
                 if (attempt < this.retryAttempts) { await this.delay(this.retryDelay); continue; }
             }
         }
-        throw lastError || new ApiError('Request failed', 500, 'Unknown error', null);
+        throw lastError || new ApiError('Bağlantı Hatası', 500, 'Sunucu ile iletişim kurulamadı.', null);
     }
 
     delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
@@ -76,12 +78,44 @@ class ApiService {
     async back() { return await this.request('/api/back', { method: 'POST' }); }
     async hideKeyboard() { return await this.request('/api/hide-keyboard', { method: 'POST' }); }
     async verifyLocator(locator) { return await this.request('/api/verify', { method: 'POST', body: { locator } }); }
+    async aiRecognizePage(screenshot) { return await this.request('/api/ai/recognize-page', { method: 'POST', body: { screenshot } }); }
+    async aiSuggestXpath(element) { return await this.request('/api/ai/suggest-xpath', { method: 'POST', body: { element } }); }
+    async aiGenerateScript(steps, format) { return await this.request('/api/ai/generate-script', { method: 'POST', body: { steps, format } }); }
 
     // ✅ YENİ METODLAR
-    async sendKeys(text, locator) {
+    async sendKeys(locator, text) {
         return await this.request('/api/send-keys', {
             method: 'POST',
-            body: { text, locator }
+            body: { locator, text }
+        });
+    }
+
+    /**
+     * Aktif Appium oturumlarını listeler
+     */
+    async getSessions() {
+        return await this.request('/api/sessions', {
+            method: 'GET'
+        });
+    }
+
+    /**
+     * Belirli bir oturuma bağlanır
+     */
+    async attachSession(sessionId, platform) {
+        return await this.request('/api/sessions/attach', {
+            method: 'POST',
+            body: { sessionId, platform }
+        });
+    }
+
+    /**
+     * Belirli bir session ID'nin aktif olup olmadığını doğrular
+     */
+    async verifySession(sessionId) {
+        return await this.request('/api/sessions/verify', {
+            method: 'POST',
+            body: { sessionId }
         });
     }
 
@@ -89,6 +123,51 @@ class ApiService {
         return await this.request('/api/get-text', {
             method: 'POST',
             body: { locator }
+        });
+    }
+
+    async visualAudit(screenshot, prompt = '') {
+        return await this.request('/api/ai/audit', {
+            method: 'POST',
+            body: { screenshot, prompt }
+        });
+    }
+
+    async getLogs(type = '') {
+        return await this.request(`/api/sessions/logs?type=${type}`, { method: 'GET' });
+    }
+
+    // ✅ JIRA INTEGRATION
+    async configureJira(config) {
+        return await this.request('/api/jira/configure', { method: 'POST', body: config });
+    }
+
+    async testJiraConnection() {
+        return await this.request('/api/jira/test', { method: 'POST' });
+    }
+
+    async createJiraIssue(summary, description, screenshot = null, priority = 'Medium') {
+        return await this.request('/api/jira/create-issue', {
+            method: 'POST',
+            body: { summary, description, screenshot, priority, issue_type: 'Bug' }
+        });
+    }
+
+    async getJiraStatus() {
+        return await this.request('/api/jira/status', { method: 'GET' });
+    }
+
+    async generateBugDescription(screenshot, elementInfo = null, platform = 'ANDROID') {
+        return await this.request('/api/ai/generate-bug-description', {
+            method: 'POST',
+            body: { screenshot, element_info: elementInfo, platform }
+        });
+    }
+
+    async translateVariableNames(names) {
+        return await this.request('/api/ai/translate-names', {
+            method: 'POST',
+            body: { names }
         });
     }
 

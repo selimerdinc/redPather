@@ -25,8 +25,8 @@ class ConfigConstants:
     DEFAULT_IOS_BUNDLE = "com.app.bundle"
     DEFAULT_IOS_PLATFORM = "16.0"
     DEFAULT_IOS_SIGN = "iPhone Developer"
-    MIN_PKG_LENGTH = 5
-    MIN_BUNDLE_LENGTH = 5
+    MIN_PKG_LENGTH = 2
+    MIN_BUNDLE_LENGTH = 2
 
 
 class ConfigValidationError(Exception):
@@ -37,7 +37,7 @@ class ConfigValidationError(Exception):
 class ConfigManager:
     """
     Kalıcı yapılandırma yönetimi.
-    Ayarları macOS'te ~/Library/Application Support/QARedPather/.env içine yazar.
+    Ayarları macOS'te ~/Library/Application Support/RedPather/.env içine yazar.
     """
 
     def __init__(self):
@@ -47,7 +47,7 @@ class ConfigManager:
         # --- ÖNEMLİ: Masaüstü Uygulaması Yolu ---
         if getattr(sys, 'frozen', False):
             # Paketleme sonrası macOS kalıcı dizini
-            app_dir = os.path.expanduser("~/Library/Application Support/QARedPather")
+            app_dir = os.path.expanduser("~/Library/Application Support/RedPather")
             if not os.path.exists(app_dir):
                 os.makedirs(app_dir, exist_ok=True)
             self._env_path = os.path.join(app_dir, ".env")
@@ -113,7 +113,15 @@ IOS_SIGN_ID=iPhone Developer
             "IOS_UDID": os.getenv("IOS_UDID", ""),
             "IOS_PLATFORM_VER": os.getenv("IOS_PLATFORM_VER", ConfigConstants.DEFAULT_IOS_PLATFORM),
             "IOS_ORG_ID": os.getenv("IOS_ORG_ID", ""),
-            "IOS_SIGN_ID": os.getenv("IOS_SIGN_ID", ConfigConstants.DEFAULT_IOS_SIGN)
+            "IOS_SIGN_ID": os.getenv("IOS_SIGN_ID", ConfigConstants.DEFAULT_IOS_SIGN),
+            "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY", ""),
+            "AI_CUSTOM_PROMPT": os.getenv("AI_CUSTOM_PROMPT", ""),
+            "AI_AUDIT_PROMPTS": os.getenv("AI_AUDIT_PROMPTS", "[]"),
+            # Jira Integration
+            "JIRA_URL": os.getenv("JIRA_URL", ""),
+            "JIRA_EMAIL": os.getenv("JIRA_EMAIL", ""),
+            "JIRA_PROJECT": os.getenv("JIRA_PROJECT", ""),
+            "JIRA_TOKEN": os.getenv("JIRA_TOKEN", "")
         }
 
     def validate_config(self, config: Dict[str, Any], platform: str) -> tuple[bool, Optional[str]]:
@@ -130,11 +138,15 @@ IOS_SIGN_ID=iPhone Developer
                     return False, "Android device name is required"
             elif platform == "IOS":
                 bundle = config.get("IOS_BUNDLE", "")
-                if len(bundle) < ConfigConstants.MIN_BUNDLE_LENGTH:
-                    return False, f"iOS bundle ID too short (min {ConfigConstants.MIN_BUNDLE_LENGTH} chars)"
+                if not bundle or len(bundle) < ConfigConstants.MIN_BUNDLE_LENGTH:
+                    return False, f"iOS Bundle ID eksik veya çok kısa (min {ConfigConstants.MIN_BUNDLE_LENGTH} karakter)"
                 if not config.get("IOS_DEVICE"):
-                    return False, "iOS device name is required"
+                    return False, "iOS Cihaz İsmi eksik"
+                # UDID yoksa uyarı ver (gerçek cihaz bağlantıları için kritik)
+                if not config.get("IOS_UDID"):
+                    logger.warning("⚠️ iOS UDID boş. Gerçek cihazda bağlantı sorunları yaşanabilir.")
             return True, None
+
         except Exception as e:
             return False, f"Validation error: {str(e)}"
 
@@ -166,27 +178,46 @@ IOS_SIGN_ID=iPhone Developer
         return self._config.copy()
 
     def save_to_env(self, config: Dict[str, Any]) -> bool:
-        """Saves configuration to the persistent path"""
+        """Saves configuration to the persistent path in a safe way"""
         try:
+            def format_val(v):
+                if v is None: return '""'
+                # Boolean handling
+                if isinstance(v, bool): return str(v)
+                # Ensure it's string
+                s = str(v)
+                # Escape double quotes and wrap in double quotes
+                escaped = s.replace('"', '\\"')
+                return f'"{escaped}"'
+
             lines = [
                 "# ANDROID CONFIG\n",
-                f"ANDROID_DEVICE={config.get('ANDROID_DEVICE', '')}\n",
-                f"ANDROID_PKG={config.get('ANDROID_PKG', '')}\n",
-                f"ANDROID_ACT={config.get('ANDROID_ACT', '')}\n",
+                f"ANDROID_DEVICE={format_val(config.get('ANDROID_DEVICE', ''))}\n",
+                f"ANDROID_PKG={format_val(config.get('ANDROID_PKG', ''))}\n",
+                f"ANDROID_ACT={format_val(config.get('ANDROID_ACT', ''))}\n",
                 f"ANDROID_NO_RESET={config.get('ANDROID_NO_RESET', True)}\n",
                 f"ANDROID_FULL_RESET={config.get('ANDROID_FULL_RESET', False)}\n",
                 "\n# IOS CONFIG\n",
-                f"IOS_DEVICE={config.get('IOS_DEVICE', '')}\n",
-                f"IOS_BUNDLE={config.get('IOS_BUNDLE', '')}\n",
-                f"IOS_UDID={config.get('IOS_UDID', '')}\n",
-                f"IOS_PLATFORM_VER={config.get('IOS_PLATFORM_VER', '')}\n",
-                f"IOS_ORG_ID={config.get('IOS_ORG_ID', '')}\n",
-                f"IOS_SIGN_ID={config.get('IOS_SIGN_ID', '')}\n"
+                f"IOS_DEVICE={format_val(config.get('IOS_DEVICE', ''))}\n",
+                f"IOS_BUNDLE={format_val(config.get('IOS_BUNDLE', ''))}\n",
+                f"IOS_UDID={format_val(config.get('IOS_UDID', ''))}\n",
+                f"IOS_PLATFORM_VER={format_val(config.get('IOS_PLATFORM_VER', ''))}\n",
+                f"IOS_ORG_ID={format_val(config.get('IOS_ORG_ID', ''))}\n",
+                f"IOS_SIGN_ID={format_val(config.get('IOS_SIGN_ID', ''))}\n",
+                "\n# AI CONFIG\n",
+                f"GEMINI_API_KEY={format_val(config.get('GEMINI_API_KEY', ''))}\n",
+                f"AI_CUSTOM_PROMPT={format_val(config.get('AI_CUSTOM_PROMPT', ''))}\n",
+                f"AI_AUDIT_PROMPTS={format_val(config.get('AI_AUDIT_PROMPTS', '[]'))}\n",
+                "\n# JIRA CONFIG\n",
+                f"JIRA_URL={format_val(config.get('JIRA_URL', ''))}\n",
+                f"JIRA_EMAIL={format_val(config.get('JIRA_EMAIL', ''))}\n",
+                f"JIRA_PROJECT={format_val(config.get('JIRA_PROJECT', ''))}\n",
+                f"JIRA_TOKEN={format_val(config.get('JIRA_TOKEN', ''))}\n"
             ]
-            with open(self._env_path, 'w') as f:
+            with open(self._env_path, 'w', encoding='utf-8') as f:
                 f.writelines(lines)
 
-            # Kayıt sonrası modifikasyon zamanını güncelle ki hot-reload tetiklenmesin
+            # Kayıt sonrası modifikasyon zamanını güncelle
             self._last_modified = self._get_env_modified_time()
             return True
         except Exception as e:

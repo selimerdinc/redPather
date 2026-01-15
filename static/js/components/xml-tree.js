@@ -28,7 +28,7 @@ class XMLTreeViewer {
             const rootElement = xmlDoc.documentElement;
 
             if (!rootElement || rootElement.nodeName === 'parsererror') {
-                console.error("XML Parse Error");
+                console.error("XML Ayrıştırma Hatası");
                 return;
             }
 

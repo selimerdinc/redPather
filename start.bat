@@ -1,9 +1,9 @@
 @echo off
-REM QA Red Pather - Windows Startup Script
+REM Red Pather - Windows Startup Script
 
 color 0B
 echo ================================
-echo 🚀 QA Red Pather Startup
+echo 🚀 Red Pather Startup
 echo ================================
 echo.
 
@@ -79,7 +79,7 @@ if errorlevel 1 (
 
 REM Start Flask app
 echo ================================
-echo 🌟 Starting QA Red Pather...
+echo 🌟 Starting Red Pather...
 echo ================================
 echo Server: http://127.0.0.1:5000
 echo Logs: redpather.log

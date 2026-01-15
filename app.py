@@ -5,6 +5,14 @@ import logging
 import webview
 from flask import Flask
 from flask_cors import CORS
+from dotenv import load_dotenv
+
+# .env dosyasını yükle
+load_dotenv()
+
+# Port ve Host ayarları
+PORT = int(os.getenv('PORT', 5005))
+HOST = os.getenv('HOST', '127.0.0.1')
 
 # Paketleme sonrası dosya yollarını doğru bulmak için kritik fonksiyon
 def get_resource_path(relative_path):
@@ -36,9 +44,8 @@ def create_app():
 flask_app = create_app()
 
 def start_server():
-    # macOS AirPlay çakışmasını önlemek için 5005 portu
-    # use_reloader=False masaüstünde zorunludur
-    flask_app.run(host='127.0.0.1', port=5005, debug=False, use_reloader=False)
+    # Port ve host .env'den okunuyor
+    flask_app.run(host=HOST, port=PORT, debug=False, use_reloader=False)
 
 if __name__ == '__main__':
     # Flask sunucusunu arka planda başlat
@@ -48,8 +55,8 @@ if __name__ == '__main__':
 
     # Masaüstü penceresini oluştur
     webview.create_window(
-        'QA Red Pather',
-        'http://127.0.0.1:5005',
+        'Red Pather',
+        f'http://{HOST}:{PORT}',
         width=1400,
         height=900
     )

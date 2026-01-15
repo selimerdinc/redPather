@@ -28,8 +28,24 @@ IMAGE_QUALITY = 60
 IMAGE_FORMAT = "JPEG"
 
 # Appium settings
-APPIUM_SERVER_URL = "http://127.0.0.1:4723/wd/hub"
+APPIUM_HOST = "127.0.0.1"
+APPIUM_PORT = 4723
+APPIUM_SERVER_URL = f"http://{APPIUM_HOST}:{APPIUM_PORT}/wd/hub"
 COMMAND_TIMEOUT = 3600
+
+# WDA settings (iOS)
+WDA_PORT = 8100
+WDA_DISCOVERY_TIMEOUT = 5  # seconds
+
+# Session settings
+SESSION_ATTACH_TIMEOUT = 10  # seconds
+SESSION_START_TIMEOUT = 60   # seconds
+IMPLICIT_WAIT = 5            # seconds
+
+# Driver settings
+DEVICE_READY_TIMEOUT = 30    # seconds
+ELEMENT_FIND_TIMEOUT = 10    # seconds
+TAP_DURATION_MS = 100        # milliseconds
 
 # Element filtering
 IGNORE_CLASSES_ANDROID = [

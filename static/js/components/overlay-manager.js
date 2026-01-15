@@ -17,7 +17,7 @@ class OverlayManager {
             this.resizeObserver.observe(this.image);
         }
 
-        // State değişikliklerini dinle (Highlight için)
+        // State değişikliklerini dinle
         if (window.appState) {
             window.appState.subscribe('ui.currentHoverIndex', (idx) => this.handleHighlight(idx));
         }
@@ -30,16 +30,23 @@ class OverlayManager {
 
     render(elements) {
         if (!this.container) return;
-        this.container.innerHTML = ''; // Temizle
+        this.container.innerHTML = '';
 
-        elements.forEach((el, index) => {
+        // ✅ FIX: Alanı büyük olanı önce çiz (altta kalsın), küçüğü sonra çiz (üstte kalsın)
+        // Bu sıralama, büyük kapsayıcıların içindeki küçük butonların tıklanabilmesini sağlar.
+        const sortedElements = [...elements].sort((a, b) => {
+            const areaA = (a.coords.w || 0) * (a.coords.h || 0);
+            const areaB = (b.coords.w || 0) * (b.coords.h || 0);
+            return areaB - areaA; // Büyükten küçüğe
+        });
+
+        sortedElements.forEach((el) => {
             if (!el.isDeleted) {
-                this.createBox(el, index);
+                // Orijinal index'i koruyarak kutuyu oluşturuyoruz
+                this.createBox(el, el.index);
             }
         });
 
-        // İlk render sonrası pozisyonları hemen güncelle
-        // (Resim yüklendiyse hemen, yüklenmediyse onload bekler ama biz yine de tetikleyelim)
         this.updateAllPositions();
     }
 
@@ -54,7 +61,12 @@ class OverlayManager {
         box.dataset.w = el.coords.w;
         box.dataset.h = el.coords.h;
 
-        // Etiket (Sol üstteki küçük numara)
+        // ✅ FIX: Z-INDEX YÖNETİMİ
+        // Alanı küçük olanın z-index'ini artırarak her zaman en üstte kalmasını sağlıyoruz.
+        const area = el.coords.w * el.coords.h;
+        box.style.zIndex = Math.max(20, 1000 - Math.floor(area / 1000));
+
+        // Etiket (Sol üstteki numara)
         const label = document.createElement('div');
         label.className = "box-label absolute -top-5 left-0 bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold shadow-lg z-50 pointer-events-none";
         label.innerText = index + 1;
@@ -63,18 +75,15 @@ class OverlayManager {
         // Tıklama Olayı
         box.onclick = (e) => {
             e.stopPropagation();
-            // Global değişkenlere erişim (app.js'den gelenler)
-            const isNavMode = document.body.classList.contains('nav-mode'); // CSS class kontrolü daha güvenli
+            const isNavMode = document.body.classList.contains('nav-mode');
 
             if (isNavMode || e.shiftKey) {
-                // Tıklama modu
                 if (window.performTap && this.image) {
                     const cx = el.coords.x + el.coords.w / 2;
                     const cy = el.coords.y + el.coords.h / 2;
                     window.performTap(cx, cy, this.image.naturalWidth, this.image.naturalHeight);
                 }
             } else {
-                // Seçim modu
                 if (window.highlightElement) {
                     window.highlightElement(index, true);
                 }
@@ -100,21 +109,17 @@ class OverlayManager {
     }
 
     handleHighlight(index) {
-        // Eskiyi temizle
         const oldActive = this.container.querySelector('.target-box.active');
         if (oldActive) oldActive.classList.remove('active');
 
         if (index === -1) return;
 
-        // Yeniyi seç
         const newActive = document.getElementById(`box-${index}`);
         if (newActive) {
             newActive.classList.add('active');
-            // Pozisyonu garantiye al
             this.updateAllPositions();
         }
     }
 }
 
-// Global'e ekle
 window.OverlayManager = OverlayManager;
