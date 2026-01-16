@@ -207,6 +207,38 @@
             font-size: 0.75rem;
         }
 
+        .terminal-block {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.7rem;
+            color: #ff453a;
+            border: 1px solid rgba(255, 59, 48, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .terminal-block::before {
+            content: "TERMINAL ÇÖZÜMÜ";
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: rgba(255, 59, 48, 0.1);
+            padding: 2px 8px;
+            font-size: 0.5rem;
+            font-weight: 800;
+            border-bottom-left-radius: 8px;
+        }
+
+        .terminal-block code {
+            display: block;
+            margin-top: 5px;
+            color: #fff;
+            opacity: 0.9;
+        }
+
         .security-icon {
             width: 16px;
             height: 16px;
@@ -289,13 +321,21 @@
                     <span>ÖNEMLİ: GÜVENLİK NOTU</span>
                 </div>
                 <p>Apple tarafından henüz imzalanmadığı için "Geliştirici doğrulanamıyor" uyarısı alabilirsiniz. Bu
-                    durum tamamen normaldir ve güvenle aşmak için:</p>
+                    durum tamamen normaldir ve güvenle aşmak için şu iki yöntemden birini kullanın:</p>
+
+                <h4 style="color: #ccc; font-size: 0.8rem; margin: 15px 0 10px 0;">Yöntem 1: Manuel İzin</h4>
                 <ul class="steps-list">
                     <li><span>1</span> <b>DMG dosyasını açın</b> ve uygulamayı Uygulamalar klasörüne sürükleyin.</li>
                     <li><span>2</span> Uygulamaya <b>Sağ Tıklayın</b> (veya Control + Tıklama).</li>
                     <li><span>3</span> Menüdeki <b>Aç (Open)</b> seçeneğini seçin.</li>
                     <li><span>4</span> Çıkan diyalog penceresinde tekrar <b>Aç</b> butonuna tıklayın.</li>
                 </ul>
+
+                <h4 style="color: #ccc; font-size: 0.8rem; margin: 20px 0 10px 0;">Yöntem 2: Hızlı Terminal Komutu</h4>
+                <div class="terminal-block">
+                    Terminali açıp şu komutu yapıştırın:
+                    <code>xattr -cr /Applications/RedPather.app</code>
+                </div>
             </div>
         </div>
     </div>
