@@ -70,8 +70,8 @@ class AnalyzerConstants:
         "tarih": "date", "saat": "time", "tutar": "amount",
         "odeme": "payment", "kart": "card", "para": "money",
         "doviz": "currency", "alis": "buy", "satis": "sell",
-        "islem": "transaction", "gecmis": "history", "haber": "news",
-        "duyuru": "announcement", "yardim": "help", "destek": "support"
+        "duyuru": "announcement", "yardim": "help", "destek": "support",
+        "dogrulama": "verification", "kod": "code", "onay": "approve", "süre": "duration"
     }
 
     # Redundant words to remove from variable names
@@ -159,16 +159,19 @@ class PageAnalyzer:
         words = clean.split('_')
         processed_words = []
         for word in words:
-            # Skip purely numeric words (prices, balances, dates)
+            # ✅ İYİLEŞTİRME: Anlamlı sayıları koru (2FA, tutar, tarih vb.)
+            # Eğer sayı 1-4 basamaklıysa (yıl, pin, fiyat gibi) veya kelimenin parçasıysa koru.
+            # Sadece çok uzun rastgele ID'leri filtrele.
             if word.isdigit():
-                continue
-            
-            # Skip words that look like formatted numbers (e.g. "7224947") if they are long
-            if len(word) >= 5 and any(char.isdigit() for char in word):
-                # If it's mostly digits, skip it
-                digit_count = sum(c.isdigit() for c in word)
-                if digit_count / len(word) > 0.6:
+                if len(word) > 6: # 6 basamaktan büyükse muhtemelen ID'dir
                     continue
+            
+            # Eğer kelime içinde hem rakam hem harf varsa ve çok uzun değilse koru (Örn: "iphone14")
+            if any(char.isdigit() for char in word) and not word.isdigit():
+                if len(word) > 15:
+                    digit_count = sum(c.isdigit() for c in word)
+                    if digit_count / len(word) > 0.7:
+                        continue
 
             # Translate Turkish words to English
             translated = AnalyzerConstants.TR_EN_MAPPING.get(word, word)

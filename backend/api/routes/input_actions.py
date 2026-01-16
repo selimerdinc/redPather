@@ -5,6 +5,7 @@ Extracted from actions.py for modularity and testability.
 import logging
 import time
 import subprocess
+import shlex
 from flask import Blueprint, request, jsonify
 from appium.webdriver.common.appiumby import AppiumBy
 from selenium.webdriver.support.ui import WebDriverWait
@@ -176,8 +177,10 @@ def _send_keys_to_element(driver, element, text: str, platform: str):
         method_used = "hybrid"
         
         try:
+            # ✅ GÜVENLĐK: Şifre alanlarına gönderilen veriyi loglama
+            log_text = "***" if any(k in text.lower() for k in ["password", "sifre", "pin", "token"]) else text
             element.send_keys(text)
-            logger.info(f"✅ Text sent via send_keys: {text}")
+            logger.info(f"✅ Text sent via send_keys: {log_text}")
         except Exception as sk_err:
             logger.warning(f"send_keys failed: {sk_err}")
             
@@ -194,9 +197,11 @@ def _send_keys_to_element(driver, element, text: str, platform: str):
             # Android ADB fallback
             elif platform == "ANDROID":
                 try:
-                    escaped = text.replace(" ", "%s").replace("&", "\\&")
+                    # ✅ GÜVENLĐK: ADB shell injection'ı önlemek için shlex.quote kullan
+                    # ADB input text komutu özel kaçış karakterleri ister
+                    quoted_text = shlex.quote(text).replace(" ", "%s")
                     result = subprocess.run(
-                        ["adb", "shell", "input", "text", escaped],
+                        ["adb", "shell", "input", "text", quoted_text],
                         capture_output=True, text=True, timeout=10
                     )
                     if result.returncode == 0:
