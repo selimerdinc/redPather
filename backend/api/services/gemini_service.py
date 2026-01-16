@@ -24,6 +24,34 @@ class GeminiService:
     def _prepare_image(self, screenshot_bytes):
         return Image.open(io.BytesIO(screenshot_bytes))
 
+    def _clean_json_response(self, text):
+        """AI yanıtındaki markdown bloklarını ve gereksiz metinleri temizleyerek JSON döner."""
+        if not text:
+            return None
+            
+        cleaned = text.strip()
+        
+        # Markdown kod bloklarını temizle
+        if "```json" in cleaned:
+            cleaned = cleaned.split("```json")[1].split("```")[0].strip()
+        elif "```" in cleaned:
+            parts = cleaned.split("```")
+            if len(parts) >= 3:
+                cleaned = parts[1].strip()
+            else:
+                cleaned = parts[0].strip()
+                
+        # Başındaki/sonundaki boşlukları ve olası "json" kelimesini temizle
+        cleaned = cleaned.strip()
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:].strip()
+            
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse AI JSON response: {e}\nOriginal text: {text[:200]}...")
+            return None
+
     def recognize_page(self, screenshot_bytes, xml_content=None):
         if not self.model:
             return "unknown"
@@ -166,19 +194,7 @@ class GeminiService:
             """
             
             response = self.model.generate_content(prompt)
-            result_text = response.text.strip()
-            
-            # JSON parse
-            if result_text.startswith("```"):
-                # Markdown code block varsa temizle
-                result_text = result_text.split("```")[1]
-                if result_text.startswith("json"):
-                    result_text = result_text[4:]
-            
-            return json.loads(result_text)
-        except json.JSONDecodeError as e:
-            logger.error(f"AI locator parse error: {e}")
-            return None
+            return self._clean_json_response(response.text)
         except Exception as e:
             logger.error(f"Gemini element analysis error: {e}")
             return None
@@ -222,15 +238,7 @@ class GeminiService:
             """
             
             response = self.model.generate_content(prompt)
-            result_text = response.text.strip()
-            
-            # JSON temizle
-            if "```json" in result_text:
-                result_text = result_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in result_text:
-                result_text = result_text.split("```")[1].split("```")[0].strip()
-            
-            return json.loads(result_text)
+            return self._clean_json_response(response.text)
         except Exception as e:
             logger.error(f"Translate variable names error: {e}")
             return None
@@ -282,15 +290,7 @@ class GeminiService:
             """
             
             response = self.model.generate_content([prompt, img])
-            result_text = response.text.strip()
-            
-            # JSON temizleme
-            if "```json" in result_text:
-                result_text = result_text.split("```json")[1].split("```")[0].strip()
-            elif "```" in result_text:
-                result_text = result_text.split("```")[1].split("```")[0].strip()
-                
-            return json.loads(result_text)
+            return self._clean_json_response(response.text)
         except Exception as e:
             logger.error(f"Gemini visual audit error: {e}")
             return None
