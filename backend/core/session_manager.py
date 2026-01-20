@@ -52,15 +52,21 @@ class SessionManager:
             self.platform = platform.upper()
     
     def is_active(self, platform: str = None) -> bool:
-        """Driver aktif mi kontrol eder."""
+        """Driver aktif mi kontrol eder (gerçek Appium ping'i ile)."""
         with self._lock:
             p = platform or self.platform
             driver = self.drivers.get(p)
             if driver:
                 try:
+                    # Sadece session_id yetmez, Appium'a ufak bir ping atalım
+                    # orientation genelde en hızlı/ucuz çağrılardan biridir
+                    _ = driver.orientation
                     return driver.session_id is not None
                 except Exception as session_err:
-                    logger.debug(f"Session check failed for {p}: {session_err}")
+                    logger.debug(f"🔍 Session check failed for {p} (stale session): {session_err}")
+                    # Bozuk driver'ı temizleyelim ki bir sonraki sefer taze başlasın
+                    if p in self.drivers:
+                        del self.drivers[p]
                     return False
             return False
     

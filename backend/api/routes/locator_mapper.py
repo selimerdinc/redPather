@@ -198,6 +198,7 @@ def map_locators():
         }
     }
     """
+    original_platform = driver_mgr.get_platform()
     try:
         req = request.json or {}
         content = req.get("content", "").strip()
@@ -220,24 +221,34 @@ def map_locators():
         if not source_locators:
             return jsonify(create_error_response("No locators found", "Could not parse any locators from input")), 400
         
-        logger.info(f"📥 Parsed {len(source_locators)} source locators from {source_platform}")
+        logger.info(f"📥 Parsed {len(source_locators)} source locators. Target: {target_platform}")
         
         # 2. Start target platform driver and scan
         try:
+            # Önce hedef platforma geç ve driver'ı al
             driver = driver_mgr.start_driver(target_platform)
         except Exception as e:
+            logger.error(f"❌ Failed to reach {target_platform}: {e}")
             return jsonify(create_error_response(
                 f"{target_platform} Connection Failed",
                 f"Could not connect to {target_platform} device. Make sure device is connected and Appium is running."
             )), 500
         
         # 3. Get target screen info
-        source_xml = driver_mgr.get_page_source()
-        screenshot = driver_mgr.take_screenshot()
-        win_size = driver_mgr.get_window_size()
-        
-        if not source_xml:
-            return jsonify(create_error_response("Failed to get target screen", "Could not retrieve page source from target device")), 500
+        try:
+            source_xml = driver_mgr.get_page_source()
+            screenshot = driver_mgr.take_screenshot()
+            win_size = driver_mgr.get_window_size()
+            
+            if not source_xml:
+                raise Exception("Empty page source received")
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to capture screen on {target_platform}: {e}")
+            return jsonify(create_error_response(
+                "Screen Capture Failed", 
+                f"Could not retrieve UI metadata from {target_platform}. Session might have dropped."
+            )), 500
         
         # 4. Analyze target screen elements
         analyzer = PageAnalyzer(driver)
@@ -280,7 +291,7 @@ def map_locators():
         else:  # rf_variables
             output_text = format_rf_variables(mappings)
         
-        logger.info(f"✅ Mapping complete: {matched}/{len(mappings)} matched, avg confidence: {avg_confidence:.1f}%")
+        logger.info(f"✅ Mapping complete: {matched}/{len(mappings)} matched")
         
         return jsonify(create_success_response(data={
             "mappings": mappings,
@@ -297,6 +308,15 @@ def map_locators():
     except Exception as e:
         logger.error(f"Locator mapping error: {e}", exc_info=True)
         return jsonify(create_error_response("Mapping failed", str(e))), 500
+    finally:
+        # 8. RESTORATION: Orijinal platforma geri dön
+        # Bu, Mapping bittikten sonra ana ekranın (refresh vb.) bozulmamasını sağlar
+        if original_platform and original_platform != driver_mgr.get_platform():
+            logger.info(f"🔄 Restoring original platform: {original_platform}")
+            try:
+                driver_mgr.start_driver(original_platform)
+            except:
+                pass
 
 
 @locator_mapper_bp.route('/locator-mapper/parse', methods=['POST'])
