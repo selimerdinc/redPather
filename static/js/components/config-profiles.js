@@ -345,112 +345,92 @@ class ConfigProfiles {
 
         const modal = document.createElement('div');
         modal.id = 'createProfileModal';
-        modal.className = 'fixed inset-0 bg-black/80 backdrop-blur-md z-[10000] flex items-center justify-center';
+        modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-md z-[10000] flex items-center justify-center animate-in fade-in duration-300';
         modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
 
         modal.innerHTML = `
-            <div class="bg-gradient-to-b from-zinc-800 to-zinc-900 rounded-2xl border border-zinc-700/50 w-96 shadow-2xl overflow-hidden">
-                <div class="bg-gradient-to-r from-indigo-500/20 to-purple-500/20 p-5 border-b border-zinc-700/50">
-                    <h3 class="text-lg font-bold text-white">Yeni Profil Oluştur</h3>
-                    <p class="text-xs text-zinc-400 mt-1">Platform seçin ve bilgileri girin</p>
+            <div class="glass border border-white/10 w-[440px] rounded-[32px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.6)] overflow-hidden scale-in animate-in zoom-in-95 duration-300">
+                <div class="bg-gradient-to-br from-indigo-500/10 to-transparent p-7 border-b border-white/5">
+                    <h3 class="text-base font-black text-white uppercase tracking-wider">Yeni Profil Oluştur</h3>
+                    <p class="text-xs text-zinc-500 mt-1 font-medium">Bağlantı parametrelerini tanımlayın</p>
                 </div>
                 
-                <div class="p-5 space-y-4">
-                    <!-- Platform Seçimi -->
+                <div class="p-7 space-y-6">
+                    <!-- Platform Selection -->
                     <div>
-                        <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-2 block">Platform</label>
-                        <div class="grid grid-cols-2 gap-2">
+                        <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-3 block">Platform Seçimi</label>
+                        <div class="grid grid-cols-2 gap-3">
                             <button type="button" onclick="configProfiles.setPlatform('ANDROID')" id="platformAndroid"
-                                class="platform-btn p-3 rounded-xl border-2 transition-all bg-emerald-500/10 border-emerald-500/50 text-emerald-400">
-                                <div class="text-2xl mb-1">🤖</div>
-                                <div class="text-xs font-bold">Android</div>
+                                class="platform-btn p-4 rounded-2xl border border-emerald-500/30 transition-all bg-emerald-500/10 text-emerald-400 group">
+                                <div class="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">🤖</div>
+                                <div class="text-[11px] font-black uppercase tracking-widest">Android</div>
                             </button>
                             <button type="button" onclick="configProfiles.setPlatform('IOS')" id="platformIOS"
-                                class="platform-btn p-3 rounded-xl border-2 transition-all bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600">
-                                <div class="text-2xl mb-1">🍎</div>
-                                <div class="text-xs font-bold">iOS</div>
+                                class="platform-btn p-4 rounded-2xl border border-white/5 transition-all bg-white/5 text-zinc-500 hover:border-blue-500/30 group">
+                                <div class="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">🍎</div>
+                                <div class="text-[11px] font-black uppercase tracking-widest">iOS</div>
                             </button>
                         </div>
                         <input type="hidden" id="selectedPlatform" value="ANDROID">
                     </div>
                     
-                    <!-- Profil Adı -->
+                    <!-- Profile Name -->
                     <div>
-                        <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-2 block">Profil Adı</label>
-                        <input type="text" id="newProfileName" placeholder="Örn: Hisse Senedi App" 
-                            class="w-full px-4 py-2.5 bg-zinc-800/80 border border-zinc-700 rounded-xl text-white text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none">
+                        <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-3 block">Profil İsmi</label>
+                        <input type="text" id="newProfileName" placeholder="Örn: Müşteri Deneyimi Uygulaması" 
+                            class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-2xl text-white text-[13px] focus:border-violet-500/50 focus:ring-4 focus:ring-violet-500/5 outline-none transition-all">
                     </div>
                     
-                    <!-- Android Alanları -->
-                    <div id="androidFields">
-                        <div class="space-y-3">
+                    <!-- Form Content -->
+                    <div id="androidFields" class="space-y-4">
+                        <div class="grid grid-cols-1 gap-4">
                             <div>
-                                <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-1 block">Paket Adı</label>
-                                <input type="text" id="profile_android_pkg" placeholder="com.example.app" 
-                                    class="w-full px-3 py-2 bg-zinc-800/80 border border-zinc-700 rounded-lg text-white text-xs focus:border-emerald-500 outline-none">
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">Uygulama Paketi</label>
+                                <input type="text" id="profile_android_pkg" placeholder="com.app.example" 
+                                    class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-emerald-500/50 outline-none transition-all">
                             </div>
                             <div>
-                                <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-1 block">Aktivite</label>
-                                <input type="text" id="profile_android_act" placeholder="com.example.app.MainActivity" 
-                                    class="w-full px-3 py-2 bg-zinc-800/80 border border-zinc-700 rounded-lg text-white text-xs focus:border-emerald-500 outline-none">
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">Başlangıç Aktivitesi</label>
+                                <input type="text" id="profile_android_act" placeholder=".MainActivity" 
+                                    class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-emerald-500/50 outline-none transition-all">
                             </div>
-                            <div>
-                                <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-1 block">Cihaz Adı</label>
+                             <div>
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">Cihaz Kimliği (ADB)</label>
                                 <input type="text" id="profile_android_device" placeholder="emulator-5554" 
-                                    class="w-full px-3 py-2 bg-zinc-800/80 border border-zinc-700 rounded-lg text-white text-xs focus:border-emerald-500 outline-none">
+                                    class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-emerald-500/50 outline-none transition-all">
                             </div>
                         </div>
                     </div>
                     
-                    <!-- iOS Alanları (Gizli) -->
-                    <div id="iosFields" class="hidden">
-                        <div class="space-y-3">
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-1 block">Bundle ID</label>
-                                    <input type="text" id="profile_ios_bundle" placeholder="com.example.app" 
-                                        class="w-full px-3 py-2 bg-zinc-800/80 border border-zinc-700 rounded-lg text-white text-xs focus:border-blue-500 outline-none">
-                                </div>
-                                <div>
-                                    <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-1 block">Cihaz Adı</label>
-                                    <input type="text" id="profile_ios_device" placeholder="iPhone" 
-                                        class="w-full px-3 py-2 bg-zinc-800/80 border border-zinc-700 rounded-lg text-white text-xs focus:border-blue-500 outline-none">
-                                </div>
+                    <div id="iosFields" class="hidden space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">Bundle ID</label>
+                                <input type="text" id="profile_ios_bundle" placeholder="com.company.app" 
+                                    class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-blue-500/50 outline-none transition-all">
                             </div>
                             <div>
-                                <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-1 block">UDID</label>
-                                <input type="text" id="profile_ios_udid" placeholder="00008110-000C14AC0A10401E" 
-                                    class="w-full px-3 py-2 bg-zinc-800/80 border border-zinc-700 rounded-lg text-white text-xs focus:border-blue-500 outline-none">
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">Model</label>
+                                <input type="text" id="profile_ios_device" placeholder="iPhone 15" 
+                                    class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-blue-500/50 outline-none transition-all">
                             </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-1 block">iOS Version</label>
-                                    <input type="text" id="profile_ios_version" placeholder="17.0" 
-                                        class="w-full px-3 py-2 bg-zinc-800/80 border border-zinc-700 rounded-lg text-white text-xs focus:border-blue-500 outline-none">
-                                </div>
-                                <div>
-                                    <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-1 block">Xcode Org ID</label>
-                                    <input type="text" id="profile_ios_org" placeholder="TEAM_ID" 
-                                        class="w-full px-3 py-2 bg-zinc-800/80 border border-zinc-700 rounded-lg text-white text-xs focus:border-blue-500 outline-none">
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] text-zinc-400 uppercase tracking-wider font-bold mb-1 block">Sertifika ID</label>
-                                <input type="text" id="profile_ios_sign" value="iPhone Developer" 
-                                    class="w-full px-3 py-2 bg-zinc-800/80 border border-zinc-700 rounded-lg text-white text-xs focus:border-blue-500 outline-none">
-                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">UDID</label>
+                            <input type="text" id="profile_ios_udid" placeholder="00008110-000C14..." 
+                                class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-blue-500/50 outline-none transition-all font-mono">
                         </div>
                     </div>
                 </div>
                 
-                <div class="flex gap-2 p-4 bg-zinc-900/50 border-t border-zinc-700/50">
+                <div class="flex gap-4 p-7 bg-black/40 border-t border-white/5">
                     <button onclick="document.getElementById('createProfileModal').remove()" 
-                        class="flex-1 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl transition-colors text-sm font-medium">
+                        class="flex-1 px-4 py-3.5 bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-white rounded-2xl transition-all text-[11px] font-black uppercase tracking-widest border border-white/5">
                         İptal
                     </button>
                     <button onclick="configProfiles.confirmCreate()" 
-                        class="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white rounded-xl transition-all text-sm font-bold shadow-lg shadow-indigo-500/25">
-                        Oluştur
+                        class="flex-1 px-4 py-3.5 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:brightness-110 text-white rounded-2xl transition-all text-[11px] font-black uppercase tracking-widest shadow-xl shadow-violet-900/20 active:scale-[0.98]">
+                        Kaydet
                     </button>
                 </div>
             </div>

@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
     # Masaüstü penceresini oluştur
     webview.create_window(
-        'Red Pather',
+        'Red Pather v1.2.0 [Ultimate]',
         f'http://{HOST}:{PORT}',
         width=1400,
         height=900
