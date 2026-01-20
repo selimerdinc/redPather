@@ -214,6 +214,7 @@ class LocatorMapper {
         }
 
         this.setLoading(true);
+        document.getElementById('mapper-output').value = '';
 
         try {
             const result = await window.api.mapLocators(

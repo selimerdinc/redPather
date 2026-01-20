@@ -43,19 +43,25 @@ def parse_rf_variables(content: str) -> list:
         if not line or line.startswith('***') or line.startswith('#'):
             continue
             
-        # Parse: ${variable_name}    locator_value
-        match = re.match(r'(\$\{[^}]+\})\s+(.+)', line)
+        # Parse: ${variable_name}    locator_value OR $(variable_name)    locator_value
+        # Indentation handle: re.match usually starts from beginning, so we allow optional leading space
+        # Also handles leading $ and brackets more flexibly
+        match = re.search(r'([\$|@|&]\{[^}]+\})\s+(.+)', line)
+        if not match:
+            # Try $(...) format as well
+            match = re.search(r'([\$|@|&]\([^)]+\))\s+(.+)', line)
+            
         if match:
             variable = match.group(1).strip()
             locator = match.group(2).strip()
             
             # Extract text hint from variable name
-            text_hint = variable.replace('${', '').replace('}', '').replace('selector_', '').replace('_', ' ')
+            text_hint = variable.replace('${', '').replace('}', '').replace('(', '').replace(')', '').replace('selector_', '').replace('_', ' ')
             
             locators.append({
                 "variable": variable,
                 "locator": locator,
-                "text_hint": text_hint
+                "text_hint": text_hint.strip()
             })
     
     return locators
@@ -309,14 +315,17 @@ def map_locators():
         logger.error(f"Locator mapping error: {e}", exc_info=True)
         return jsonify(create_error_response("Mapping failed", str(e))), 500
     finally:
-        # 8. RESTORATION: Orijinal platforma geri dön
+        # 8. RESTORATION: Orijinal platforma geri dön (Background thread ile)
         # Bu, Mapping bittikten sonra ana ekranın (refresh vb.) bozulmamasını sağlar
+        # Thread kullanıyoruz çünkü driver başlatma işlemi ana yanıtı geciktirmemeli (timeout risk)
         if original_platform and original_platform != driver_mgr.get_platform():
-            logger.info(f"🔄 Restoring original platform: {original_platform}")
-            try:
-                driver_mgr.start_driver(original_platform)
-            except:
-                pass
+            import threading
+            logger.info(f"🔄 Launching background restoration to {original_platform}")
+            threading.Thread(
+                target=driver_mgr.start_driver, 
+                args=(original_platform,),
+                daemon=True
+            ).start()
 
 
 @locator_mapper_bp.route('/locator-mapper/parse', methods=['POST'])
