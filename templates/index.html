@@ -205,6 +205,14 @@
 
                 <!-- Utility Buttons Container -->
                 <div class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
+                    <button onclick="window.openLocatorMapper()"
+                        class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 transition-all tooltip-btn"
+                        data-tooltip="Locator Mapper">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                    </button>
                     <button onclick="window.toggleLogPanel()"
                         class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all tooltip-btn"
                         data-tooltip="Loglar">
@@ -598,6 +606,7 @@
     <script src="{{ url_for('static', filename='js/components/overlay-manager.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/element-list.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/context-menu.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/locator-mapper.js') }}"></script>
 
     <script src="{{ url_for('static', filename='js/constants.js') }}"></script>
 

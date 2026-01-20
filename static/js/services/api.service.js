@@ -171,6 +171,28 @@ class ApiService {
         });
     }
 
+    /**
+     * Cross-platform locator mapping
+     * @param {string} content - Locator içeriği
+     * @param {string} format - Input formatı: rf_variables, json, keyvalue
+     * @param {string} sourcePlatform - Kaynak platform: ANDROID veya IOS
+     * @param {string} targetPlatform - Hedef platform: ANDROID veya IOS
+     * @param {string} outputFormat - Çıktı formatı: rf_variables, json, keyvalue
+     */
+    async mapLocators(content, format = 'rf_variables', sourcePlatform = 'ANDROID',
+        targetPlatform = 'IOS', outputFormat = 'rf_variables') {
+        return await this.request('/api/locator-mapper/map', {
+            method: 'POST',
+            body: {
+                content,
+                format,
+                source_platform: sourcePlatform,
+                target_platform: targetPlatform,
+                output_format: outputFormat
+            }
+        });
+    }
+
     async health() { return await this.request('/health', { method: 'GET' }); }
 }
 
