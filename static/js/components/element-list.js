@@ -25,110 +25,99 @@ class ElementListManager {
         const index = el.index;
         const item = document.createElement('div');
         item.id = `list-item-${index}`;
-        item.className = 'list-item p-4 rounded-lg mb-2 cursor-pointer group relative flex flex-col gap-2 border border-[#27272a]';
 
-        let badgeClass = "bg-gray-800 text-gray-400 border border-gray-700";
-        if (el.strategy.includes('ID')) badgeClass = "bg-blue-900/30 text-blue-400 border border-blue-800";
-        else if (el.strategy.includes('ACC_ID')) badgeClass = "bg-emerald-900/30 text-emerald-400 border border-emerald-800";
-        else if (el.strategy.includes('ANCHOR')) badgeClass = "bg-pink-900/30 text-pink-400 border border-pink-800";
-        else if (el.strategy.includes('TEXT')) badgeClass = "bg-purple-900/30 text-purple-400 border border-purple-800";
+        // Strategy badge colors
+        let badgeColor = "bg-zinc-800/50 text-zinc-400 border-zinc-700/50";
 
-        const header = document.createElement('div');
-        header.className = "flex items-center justify-between w-full";
-        header.innerHTML = `
-            <div class="flex items-center gap-2">
-                <span class="text-[10px] font-mono font-bold text-gray-500">#${String(index + 1).padStart(2, '0')}</span>
-                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded border ${badgeClass}">${el.strategy}</span>
+        if (el.strategy.includes('ID')) badgeColor = "bg-violet-500/10 text-violet-400 border-violet-500/20";
+        else if (el.strategy.includes('ACC_ID')) badgeColor = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+        else if (el.strategy.includes('ANCHOR')) badgeColor = "bg-pink-500/10 text-pink-400 border-pink-500/20";
+        else if (el.strategy.includes('TEXT')) badgeColor = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+        else if (el.strategy.includes('XPATH') || el.locator?.startsWith('xpath=')) badgeColor = "bg-red-500/10 text-red-400 border-red-500/20";
+
+        // Health score indicator
+        const healthScore = el.health_score ?? 50;
+        const healthLabel = el.health_label ?? 'warning';
+        let healthEmoji = '🟡';
+        let healthColor = 'text-amber-400';
+        let healthTip = 'Orta stabilite';
+
+        if (healthLabel === 'good' || healthScore >= 70) {
+            healthEmoji = '🟢';
+            healthColor = 'text-emerald-400';
+            healthTip = 'Stabil locator';
+        } else if (healthLabel === 'fragile' || healthScore < 50) {
+            healthEmoji = '🔴';
+            healthColor = 'text-red-400';
+            healthTip = '⚠️ Kırılgan! Değiştirmeyi düşünün';
+        }
+
+        // Premium kart stilleri - TÜM KARTLAR için kırmızı çerçeve + hover efekti
+        item.className = `list-item group relative flex flex-col gap-2 p-3 mb-2 rounded-xl 
+            border border-red-500/30 bg-zinc-900/60 
+            hover:border-red-400/60 hover:bg-zinc-800/80 
+            hover:shadow-[0_0_20px_rgba(239,68,68,0.15)] hover:scale-[1.01]
+            focus-within:ring-2 focus-within:ring-red-500/40
+            transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-hidden`;
+
+        item.innerHTML = `
+            <!-- Premium Red Accent Bar -->
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-500/20 via-red-500/50 to-red-500/20 group-hover:via-red-400 group-hover:shadow-[0_0_8px_rgba(239,68,68,0.4)] transition-all duration-500"></div>
+
+            <div class="flex items-start gap-3">
+                <div class="shrink-0 mt-0.5">
+                    <div class="w-9 h-9 rounded-lg glass flex items-center justify-center text-zinc-400 group-hover:text-white transition-all duration-300 relative">
+                        <span class="text-[10px] font-mono font-extrabold tracking-tighter">#${String(index + 1).padStart(2, '0')}</span>
+                        <span class="absolute -top-1 -right-1 text-[10px]" title="${healthTip} (${healthScore})">${healthEmoji}</span>
+                    </div>
+                </div>
+
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1.5 gap-2">
+                        <span class="text-[13px] font-semibold text-zinc-50 truncate tracking-tight group-hover:text-white transition-colors cursor-text" 
+                              ondblclick="event.stopPropagation(); window.startEdit(this, ${index}, 'variable')">${el.variable}</span>
+                        <div class="flex items-center gap-1">
+                            <span class="text-[8px] ${healthColor} font-bold" title="${healthTip}">${healthScore}</span>
+                            <span class="text-[9px] px-2 py-0.5 rounded-md ${badgeColor} font-black border uppercase tracking-wider">${el.strategy}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="relative group/loc">
+                        <code class="block text-[11px] text-zinc-400 font-mono font-medium truncate bg-black/30 px-2.5 py-2 rounded-lg border border-white/10 hover:border-red-500/40 hover:text-zinc-200 transition-all cursor-text"
+                              ondblclick="event.stopPropagation(); window.startEdit(this, ${index}, 'locator')">${el.locator}</code>
+                    </div>
+
+                    <!-- Actions Panel - Refined -->
+                    <div class="flex items-center justify-between mt-3 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
+                        <div class="flex items-center gap-2">
+                            <button onclick="event.stopPropagation(); window.ElementListManager.prototype.handleVerifyAction(this, ${index}, '${el.locator}')" 
+                                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-emerald-500/20 text-zinc-400 hover:text-emerald-400 transition-all border border-white/10 hover:border-emerald-500/30" 
+                                    title="Doğrula">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            </button>
+                            <button onclick="event.stopPropagation(); window.ElementListManager.prototype.staticHandleCopy('${el.variable}', '${el.locator}')" 
+                                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-violet-500/20 text-zinc-400 hover:text-violet-400 transition-all border border-white/10 hover:border-violet-500/30" 
+                                    title="Kopyala">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            </button>
+                            ${(window.app && window.app.isAiEnabled) ? `
+                            <button onclick="event.stopPropagation(); if(window.app && window.app.startAiXpathSuggest) window.app.startAiXpathSuggest(null, ${index})" 
+                                    class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-amber-500/20 text-zinc-400 hover:text-amber-400 transition-all border border-white/10 hover:border-amber-500/30" 
+                                    title="AI XPath Önerisi">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            </button>` : ''}
+                        </div>
+                        
+                        <button onclick="event.stopPropagation(); window.removeElement(event, ${index})" 
+                                class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition-all border border-white/10 hover:border-red-500/30"
+                                title="Sil">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
-        if (el.text) {
-            const textSpan = document.createElement('span');
-            textSpan.className = "text-[10px] text-gray-500 truncate max-w-[120px]";
-            textSpan.title = el.text;
-            textSpan.textContent = el.text;
-            header.appendChild(textSpan);
-        }
-        item.appendChild(header);
 
-        const varContainer = document.createElement('div');
-        varContainer.className = "w-full";
-        const varCode = document.createElement('code');
-        varCode.className = "block text-[13px] text-red-400 font-bold break-all hover:text-red-300 transition-colors cursor-text mb-1 border border-transparent hover:border-red-900/30 rounded px-1 -mx-1";
-        varCode.title = "Çift tıkla düzenle";
-        varCode.textContent = el.variable;
-        varCode.ondblclick = (e) => {
-            e.stopPropagation();
-            if (window.startEdit) window.startEdit(varCode, index, 'variable');
-        };
-        varContainer.appendChild(varCode);
-
-        const locCode = document.createElement('code');
-        locCode.className = "block text-[10px] text-gray-600 bg-[#09090b] px-2 py-1.5 rounded border border-[#27272a] break-all font-mono hover:text-gray-400 hover:border-gray-500 transition-colors cursor-text";
-        locCode.title = "Çift tıkla düzenle";
-        locCode.textContent = el.locator;
-        locCode.ondblclick = (e) => {
-            e.stopPropagation();
-            if (window.startEdit) window.startEdit(locCode, index, 'locator');
-        };
-        varContainer.appendChild(locCode);
-        item.appendChild(varContainer);
-
-        const actions = document.createElement('div');
-        actions.className = "flex items-center gap-2 w-full mt-1";
-        const verifyBtn = this.createActionButton(
-            `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>`,
-            "Doğrula"
-        );
-        verifyBtn.onclick = (e) => this.handleVerify(e, index, verifyBtn, el.locator);
-        actions.appendChild(verifyBtn);
-
-        const copyBtn = this.createActionButton(
-            `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>`,
-            "Kopyala"
-        );
-        copyBtn.onclick = (e) => this.handleCopy(e, el);
-        actions.appendChild(copyBtn);
-
-        if (window.app && window.app.isAiEnabled) {
-            const aiBtn = this.createActionButton(
-                `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`,
-                "AI XPath Önerisi"
-            );
-            aiBtn.onclick = (e) => {
-                e.stopPropagation();
-                if (window.app && window.app.startAiXpathSuggest) window.app.startAiXpathSuggest(el, el.index);
-            };
-            actions.appendChild(aiBtn);
-        }
-
-        // Input alanları için metin gönderme butonu
-        const isInput = el.variable && (el.variable.includes('input') || el.variable.includes('field') || el.variable.includes('text'));
-        if (isInput) {
-            const sendTextBtn = this.createActionButton(
-                `<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>`,
-                "Metin Gönder"
-            );
-            sendTextBtn.onclick = (e) => {
-                e.stopPropagation();
-                if (window.showInputModal) window.showInputModal(el.locator, el.text || el.variable);
-            };
-            actions.appendChild(sendTextBtn);
-        }
-
-        const deleteBtn = this.createActionButton(
-            `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
-            "Sil",
-            true
-        );
-        deleteBtn.onclick = (e) => {
-            e.stopPropagation();
-            // Global removeElement fonksiyonu çağrılıyor mu?
-            if (window.removeElement) window.removeElement(e, index);
-        };
-        actions.appendChild(deleteBtn);
-        item.appendChild(actions);
-
-        // --- Context Menu (Right Click) ✅ EKLENDİ ---
         item.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             if (window.app && window.app.contextMenu) {
@@ -142,9 +131,21 @@ class ElementListManager {
         return item;
     }
 
+    // Helper to handle actions from onclick strings
+    handleVerifyAction(btn, index, locator) {
+        this.handleVerify(new Event('click'), index, btn, locator);
+    }
+
+    static staticHandleCopy(variable, locator) {
+        const txt = `\${${variable.replace(/[${}]/g, '')}}\t${locator}`;
+        navigator.clipboard.writeText(txt).then(() => {
+            if (window.app && window.app.ui) window.app.ui.showToast("Kopyalandı", "Satır kopyalandı", 'success');
+        });
+    }
+
     createActionButton(iconHtml, title, isDelete = false) {
         const btn = document.createElement('button');
-        btn.className = `action-btn ${isDelete ? 'delete ml-auto' : ''}`;
+        btn.className = `w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 hover:bg-zinc-700 text-zinc-500 hover:text-white transition-all border border-white/5 ${isDelete ? 'ml-auto' : ''}`;
         btn.title = title;
         btn.innerHTML = iconHtml;
         return btn;

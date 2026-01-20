@@ -39,8 +39,11 @@ class SessionReconnect {
                     if (url.includes('/api/scan') && response.ok) {
                         this.onConnectionSuccess();
                     }
-                    // Track connection errors
-                    if (!response.ok && response.status >= 500) {
+                    // Track connection errors, but ignore specific APIs that handle their own errors
+                    // Locator mapper switching platforms might return 500 if target not ready,
+                    // but we don't want to trigger a global "lost connection" toast for the main platform yet.
+                    const isMapperApi = url.includes('/api/locator-mapper');
+                    if (!response.ok && response.status >= 500 && !isMapperApi) {
                         this.onConnectionError();
                     }
                 }

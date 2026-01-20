@@ -1,9 +1,30 @@
+:root {
+    --bg-main: #0a0a0c;
+    --bg-card: #121214;
+    --bg-glass: rgba(18, 18, 20, 0.7);
+    --border-glass: rgba(255, 255, 255, 0.05);
+    --border-glass-hover: rgba(255, 255, 255, 0.1);
+
+    --accent-red: #ef4444;
+    --accent-red-glow: rgba(239, 68, 68, 0.3);
+    --accent-violet: #8b5cf6;
+    --accent-violet-glow: rgba(139, 92, 246, 0.3);
+
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    --transition-premium: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* BASE */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #09090b;
-    color: #e4e4e7;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 code {
@@ -11,8 +32,8 @@ code {
 }
 
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 4px;
+    height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -20,33 +41,58 @@ code {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #27272a;
+    background: #1e1e24;
     border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #3f3f46;
+    background: var(--accent-violet);
 }
 
-/* ===== PREMIUM PROFESSIONAL SEGMENTED CONTROLS (Sharp Design) ===== */
+/* PREMIUM UTILS */
+input,
+textarea,
+select {
+    user-select: text !important;
+    pointer-events: auto !important;
+}
+
+button {
+    pointer-events: auto !important;
+}
+
+.glass {
+    background: var(--bg-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-glass);
+}
+
+.premium-shadow {
+    box-shadow: var(--shadow-premium);
+}
+
+.glow-violet:hover {
+    box-shadow: 0 0 20px var(--accent-violet-glow);
+}
+
+/* ===== PREMIUM PROFESSIONAL SEGMENTED CONTROLS ===== */
 .segmented-control {
     position: relative;
     display: flex;
-    background: #09090b;
-    border-radius: 3px;
-    /* Daha keskin */
-    padding: 0;
+    background: #020617;
+    /* Slate 950 */
+    border-radius: 10px;
+    padding: 2px;
     cursor: pointer;
     user-select: none;
-    height: 30px;
-    border: 1px solid #27272a;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
     overflow: hidden;
     width: 140px;
-    /* Platform switcher için ideal genişlik */
 }
 
-/* View toggle (Eleman Listesi / XML) için daha geniş alan */
 #view-toggle {
     width: 240px;
 }
@@ -59,16 +105,14 @@ code {
     align-items: center;
     justify-content: center;
     font-size: 10px;
-    font-weight: 800;
-    /* Daha okunaklı */
-    color: #52525b;
+    font-weight: 700;
+    color: #475569;
     height: 100%;
-    transition: color 0.2s ease;
+    transition: var(--transition-premium);
     text-align: center;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
     white-space: nowrap;
-    line-height: 1;
 }
 
 .segment-option.active {
@@ -77,29 +121,15 @@ code {
 
 .segment-slider {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 50%;
-    /* Tam yarıyı kaplar */
-    height: 100%;
-    background: #dc2626;
-    border-radius: 0;
-    /* Tam kenarları kaplasın */
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    top: 2px;
+    left: 2px;
+    width: calc(50% - 2px);
+    height: calc(100% - 4px);
+    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+    border-radius: 8px;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 1;
-}
-
-/* Tam ortadaki profesyonel ayrım çizgisi */
-.segmented-control::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    background: #27272a;
-    z-index: 0;
-    pointer-events: none;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
 }
 
 /* ===== PREMIUM SWITCHES ===== */
@@ -874,6 +904,7 @@ body.nav-mode .target-box:hover {
     border-radius: 10px;
     margin-bottom: 12px;
 }
+
 /* ===== RESPONSIVE BREAKPOINTS ===== */
 
 /* Tablet - 768px */
@@ -884,20 +915,20 @@ body.nav-mode .target-box:hover {
         flex-wrap: wrap;
         gap: 0.5rem;
     }
-    
+
     .segmented-control {
         width: 120px;
         height: 28px;
     }
-    
+
     #pagePrefix {
         width: 60px;
     }
-    
+
     .list-item {
         padding: 0.75rem;
     }
-    
+
     .modal-box {
         margin: 1rem;
         max-height: 90vh;
@@ -909,17 +940,17 @@ body.nav-mode .target-box:hover {
     header {
         padding: 0.25rem 0.5rem;
     }
-    
+
     .segmented-control {
         width: 100px;
         height: 26px;
         font-size: 9px;
     }
-    
+
     .list-item code {
         font-size: 9px;
     }
-    
+
     .hidden-mobile {
         display: none !important;
     }
@@ -927,7 +958,10 @@ body.nav-mode .target-box:hover {
 
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+
+    *,
+    *::before,
+    *::after {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
     }

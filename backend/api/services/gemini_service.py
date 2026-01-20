@@ -557,8 +557,93 @@ Return ONLY valid JSON array, no markdown or explanation.
             else:
                 response = self.model.generate_content(prompt)
             
-            return self._clean_json_response(response.text)
+            raw_text = response.text
+            logger.info(f"🤖 AI Raw Response (first 500 chars): {raw_text[:500]}...")
+            
+            parsed = self._clean_json_response(raw_text)
+            if parsed is None:
+                logger.error("❌ AI JSON parse FAILED! Raw text couldn't be converted to JSON.")
+            else:
+                logger.info(f"✅ AI JSON parsed successfully: {len(parsed)} items")
+            return parsed
             
         except Exception as e:
             logger.error(f"Map locators cross-platform error: {e}")
             return None
+
+    def generate_semantic_names(self, elements: list, platform: str = "IOS", screenshot_bytes=None) -> dict:
+        """
+        Element listesi için AI'dan semantik isimler üretir.
+        Bu isimler, cross-platform mapping için daha uyumlu hale getirir.
+        
+        Args:
+            elements: Element listesi (variable, locator, text vb. içerir)
+            platform: Hedef platform
+            screenshot_bytes: Ekran görüntüsü (opsiyonel)
+            
+        Returns:
+            dict: {original_variable: semantic_name} eşleştirmesi
+        """
+        if not self.model:
+            return {}
+            
+        try:
+            img = self._prepare_image(screenshot_bytes) if screenshot_bytes else None
+            
+            # Sadece ilk 30 elementi gönder (token limiti)
+            elements_to_send = elements[:30]
+            
+            prompt = f"""
+You are a mobile app test automation expert. Your task is to generate SEMANTIC NAMES for UI elements.
+
+PLATFORM: {platform}
+ELEMENTS TO NAME:
+{json.dumps([{
+    "idx": i,
+    "current_name": e.get("variable", ""),
+    "locator": e.get("locator", ""),
+    "text": e.get("text", ""),
+    "type": e.get("type", "")
+} for i, e in enumerate(elements_to_send)], ensure_ascii=False, indent=2)}
+
+NAMING RULES:
+1. Use snake_case (e.g., empty_state_message, search_button, alarm_title)
+2. Names should be ENGLISH and descriptive
+3. Focus on element PURPOSE not implementation
+4. Common patterns:
+   - Empty states → empty_[feature]_[type] (empty_alarms_message)
+   - Buttons → [action]_btn (create_alarm_btn, search_btn)
+   - Labels → [content]_lbl (title_lbl, subtitle_lbl)
+   - Inputs → [field]_input (search_input, email_input)
+   - Lists → [items]_list (alarms_list, notifications_list)
+
+Return JSON object mapping index to semantic name:
+{{"0": "semantic_name_1", "1": "semantic_name_2", ...}}
+
+Return ONLY valid JSON, no explanation.
+"""
+            
+            if img:
+                response = self.model.generate_content([prompt, img])
+            else:
+                response = self.model.generate_content(prompt)
+            
+            result = self._clean_json_response(response.text)
+            
+            if result:
+                # Index'ten original variable'a map et
+                semantic_map = {}
+                for idx_str, semantic_name in result.items():
+                    idx = int(idx_str)
+                    if idx < len(elements_to_send):
+                        original_var = elements_to_send[idx].get("variable", "")
+                        semantic_map[original_var] = semantic_name
+                
+                logger.info(f"✅ Generated {len(semantic_map)} semantic names")
+                return semantic_map
+            
+            return {}
+            
+        except Exception as e:
+            logger.error(f"Generate semantic names error: {e}")
+            return {}
