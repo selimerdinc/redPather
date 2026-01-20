@@ -79,6 +79,26 @@ class AnalyzerConstants:
         "dashboard", "screen", "view", "page", "container",
         "wrapper", "holder", "cell", "row", "item"
     ]
+    
+    # Locator sağlık skorları - yüksek = daha stabil
+    LOCATOR_HEALTH_SCORES = {
+        "ID": 95,           # resource-id ile - en stabil
+        "ACC_ID": 90,       # accessibility_id - çok stabil
+        "ID_TEXT": 85,      # ID + text combo
+        "ANCHOR": 80,       # relative anchoring
+        "CONTENT_DESC": 75, # content-desc
+        "TEXT": 60,         # sadece text - dil değişince kırılır
+        "TEXT_FALLBACK": 50,# text fallback
+        "LABEL": 55,        # iOS label
+        "FALLBACK": 30,     # genel fallback
+        "INDEX_XPATH": 25,  # index-based xpath - çok kırılgan
+        "UNKNOWN": 40       # bilinmeyen strateji
+    }
+    
+    # Sağlık skoru eşikleri
+    HEALTH_THRESHOLD_GOOD = 70      # 🟢 Yeşil
+    HEALTH_THRESHOLD_WARNING = 50   # 🟡 Sarı
+    # < 50 = 🔴 Kırmızı (kırılgan)
 
 
 class PageAnalyzer:
@@ -91,6 +111,42 @@ class PageAnalyzer:
         self.driver = driver
         self._xpath_cache: Dict[str, bool] = {}
         logger.debug("PageAnalyzer initialized")
+    
+    def _calculate_health_score(self, strategy: str, locator: str) -> int:
+        """
+        Calculate health score for a locator based on strategy and pattern.
+        
+        Args:
+            strategy: Locator strategy (ID, ACC_ID, TEXT, etc.)
+            locator: Full locator string
+            
+        Returns:
+            int: Health score 0-100 (higher = more stable)
+        """
+        # Base score from strategy
+        base_score = AnalyzerConstants.LOCATOR_HEALTH_SCORES.get(
+            strategy, 
+            AnalyzerConstants.LOCATOR_HEALTH_SCORES["UNKNOWN"]
+        )
+        
+        # Penalize index-based XPaths (very fragile)
+        if "[" in locator and "]" in locator:
+            import re
+            # Check for numeric indexes like [1], [2], etc.
+            if re.search(r'\[\d+\]', locator):
+                base_score = min(base_score, 25)  # Cap at 25 for index-based
+        
+        # Penalize very long XPaths (more likely to break)
+        if locator.startswith("xpath=") and locator.count("/") > 5:
+            base_score = max(base_score - 10, 15)
+        
+        # Penalize text-based locators with non-ASCII (localization risk)
+        if "text=" in locator.lower() or "@label=" in locator.lower():
+            # Check for non-ASCII characters (Turkish, etc.)
+            if any(ord(c) > 127 for c in locator):
+                base_score = max(base_score - 15, 30)
+        
+        return base_score
 
     def optimize_image(self, base64_str: str, quality: int = AnalyzerConstants.IMAGE_QUALITY) -> str:
         """
@@ -850,6 +906,17 @@ class PageAnalyzer:
 
                 # Get full XPath for debugging
                 full_xpath = elem.getroottree().getpath(elem)
+                
+                # Calculate health score based on strategy and locator pattern
+                health_score = self._calculate_health_score(res['strategy'], res['locator'])
+                
+                # Determine health label
+                if health_score >= AnalyzerConstants.HEALTH_THRESHOLD_GOOD:
+                    health_label = "good"
+                elif health_score >= AnalyzerConstants.HEALTH_THRESHOLD_WARNING:
+                    health_label = "warning"
+                else:
+                    health_label = "fragile"
 
                 return {
                     "coords": coords,
@@ -857,7 +924,9 @@ class PageAnalyzer:
                     "locator": res['locator'],
                     "strategy": res['strategy'],
                     "text": info["text"] or info["content_desc"] or "",
-                    "full_xpath": full_xpath
+                    "full_xpath": full_xpath,
+                    "health_score": health_score,
+                    "health_label": health_label
                 }
 
         except Exception as e:

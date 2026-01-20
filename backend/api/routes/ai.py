@@ -147,6 +147,34 @@ def generate_keywords():
         if not result:
             return jsonify(create_error_response("AI failed to generate keywords")), 500
         
+        # Boşluklu accessibility_id locator'ları XPath'e dönüştür
+        if result.get('variables'):
+            def convert_acc_id_to_xpath(line):
+                if 'accessibility_id=' in line:
+                    import re
+                    match = re.search(r'accessibility_id=(.+)$', line)
+                    if match:
+                        acc_value = match.group(1).strip()
+                        if ' ' in acc_value:
+                            # Virgülden veya uzunluktan kes
+                            if ',' in acc_value:
+                                acc_value = acc_value.split(',')[0].strip()
+                            elif len(acc_value) > 50:
+                                acc_value = ' '.join(acc_value.split()[:4])
+                            # XPath formatına dönüştür
+                            prefix = line[:match.start()]
+                            return f"{prefix}xpath=//*[@label='{acc_value}']"
+                return line
+            
+            lines = result['variables'].split('\n')
+            converted_lines = [convert_acc_id_to_xpath(line) for line in lines]
+            result['variables'] = '\n'.join(converted_lines)
+            
+            # full_output da güncelle
+            if result.get('full_output'):
+                full_lines = result['full_output'].split('\n')
+                result['full_output'] = '\n'.join([convert_acc_id_to_xpath(line) for line in full_lines])
+        
         return jsonify(create_success_response(data=result))
     except Exception as e:
         logger.error(f"AI Generate Keywords Error: {e}")

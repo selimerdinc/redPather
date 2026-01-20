@@ -37,7 +37,10 @@ class LocatorMapper {
                     </div>
                     <div>
                         <h3 class="text-[13px] font-black text-white uppercase tracking-wider">Locator Mapper</h3>
-                        <p class="text-[10px] text-zinc-500 font-medium">Cross-Platform Matching Engine</p>
+                        <div class="flex items-center gap-2">
+                            <p class="text-[10px] text-zinc-500 font-medium">Cross-Platform Matching Engine</p>
+                            <span id="mapper-ai-badge" class="px-1.5 py-0.5 rounded text-[8px] font-black tracking-tighter uppercase transition-all">CHECKING...</span>
+                        </div>
                     </div>
                 </div>
                 <button onclick="window.closeLocatorMapper()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-all active:scale-90">
@@ -129,6 +132,7 @@ class LocatorMapper {
                         </svg>
                         <span id="mapper-btn-text">Dönüştürmeyi Başlat</span>
                     </button>
+                    <p id="mapper-engine-info" class="text-[9px] text-center text-zinc-600 mt-2 font-medium italic hidden"></p>
                 </div>
 
                 <!-- Output Section -->
@@ -174,6 +178,31 @@ class LocatorMapper {
         if (this.panel) {
             this.panel.classList.remove('translate-x-full');
             this.isOpen = true;
+            this.checkAIStatus();
+        }
+    }
+
+    async checkAIStatus() {
+        const badge = document.getElementById('mapper-ai-badge');
+        if (!badge) return;
+
+        try {
+            const config = await window.api.getConfig();
+            const isReady = !!config.GEMINI_API_KEY;
+
+            badge.textContent = isReady ? 'AI ACTIVE' : 'HEURISTIC MODE';
+            badge.className = isReady
+                ? 'px-1.5 py-0.5 rounded text-[8px] font-black tracking-tighter uppercase bg-violet-500/20 text-violet-400 border border-violet-500/20 shadow-[0_0_10px_rgba(139,92,246,0.2)]'
+                : 'px-1.5 py-0.5 rounded text-[8px] font-black tracking-tighter uppercase bg-zinc-800 text-zinc-500 border border-zinc-700';
+
+            const info = document.getElementById('mapper-engine-info');
+            if (info) {
+                info.textContent = isReady ? '✨ Gemini AI motoru ile yüksek doğrulukta eşleştirme.' : '⚠️ AI anahtarı eksik. Basit benzerlik motoru kullanılıyor.';
+                info.classList.remove('hidden');
+            }
+        } catch (e) {
+            badge.textContent = 'ERROR';
+            badge.className = 'px-1.5 py-0.5 rounded text-[8px] font-black tracking-tighter uppercase bg-red-900/20 text-red-500 border border-red-500/20';
         }
     }
 
@@ -195,9 +224,15 @@ class LocatorMapper {
     }
 
     async runMapping() {
-        if (this.isProcessing) return;
+        console.log('🚀 [MAPPER] runMapping() called');
+        if (this.isProcessing) {
+            console.log('⚠️ [MAPPER] Already processing, skipping');
+            return;
+        }
 
         const input = document.getElementById('mapper-input').value.trim();
+        console.log('📝 [MAPPER] Input length:', input.length);
+
         if (!input) {
             window.appState?.ui?.showToast?.('Uyarı', 'Lütfen locator girin', 'warning');
             return;
@@ -208,15 +243,18 @@ class LocatorMapper {
         const inputFormat = document.getElementById('mapper-input-format').value;
         const outputFormat = document.getElementById('mapper-output-format').value;
 
+        console.log('📤 [MAPPER] Calling API:', { sourcePlatform, targetPlatform, inputFormat, outputFormat });
+
         if (sourcePlatform === targetPlatform) {
             window.appState?.ui?.showToast?.('Uyarı', 'Kaynak ve hedef platform aynı olamaz', 'warning');
             return;
         }
 
         this.setLoading(true);
-        document.getElementById('mapper-output').value = '';
+        document.getElementById('mapper-output').value = 'İşleniyor...';
 
         try {
+            console.log('📡 [MAPPER] Making API request...');
             const result = await window.api.mapLocators(
                 input,
                 inputFormat,
@@ -225,24 +263,50 @@ class LocatorMapper {
                 outputFormat
             );
 
+            console.log('📥 [MAPPER] API Response:', result);
+            console.log('📥 [MAPPER] result.output:', result?.output);
+            console.log('📥 [MAPPER] result.stats:', result?.stats);
+
             this.lastResult = result;
 
             // Show output
-            document.getElementById('mapper-output').value = result.output || '';
+            const outputVal = result?.output || '# API döndü ama output boş.';
+            console.log('📝 [MAPPER] Setting output to:', outputVal.substring(0, 100));
+
+            const outputEl = document.getElementById('mapper-output');
+            if (outputEl) {
+                outputEl.value = outputVal;
+                console.log('✅ [MAPPER] Output element updated');
+            } else {
+                console.error('❌ [MAPPER] Output element NOT FOUND!');
+            }
 
             // Show stats
-            const stats = result.stats || {};
+            const stats = result?.stats || { matched: 0, total: 0, avg_confidence: 0 };
             const statsEl = document.getElementById('mapper-stats');
             if (statsEl) {
-                statsEl.textContent = `${stats.matched}/${stats.total} eşleşti (avg: ${stats.avg_confidence}%)`;
+                statsEl.textContent = `${stats.matched}/${stats.total} eşleşti (doğruluk: ${stats.avg_confidence}%)`;
                 statsEl.classList.remove('hidden');
             }
 
-            window.appState?.ui?.showToast?.('✅ Başarılı', `${stats.matched}/${stats.total} locator dönüştürüldü`, 'success');
+            if (stats.matched > 0) {
+                window.appState?.ui?.showToast?.('✅ Başarılı', `${stats.matched} locator başarıyla eşleştirildi`, 'success');
+            } else {
+                window.appState?.ui?.showToast?.('⚠️ Uyarı', 'Hiçbir eşleşme bulunamadı', 'warning');
+            }
 
         } catch (e) {
-            console.error('Mapping error:', e);
-            window.appState?.ui?.showToast?.('Hata', e.userMessage || e.message || 'Dönüştürme başarısız', 'error');
+            console.error('❌ [MAPPER] Error:', e);
+            // e.details backend'den gelen detaylı hata mesajını içerir
+            const detailedMsg = e.details || e.userMessage || e.message || 'Dönüştürme başarısız';
+
+            // HATA DURUMUNDA DA ÇIKTI ALANI GÜNCELLENSİN
+            const outputEl = document.getElementById('mapper-output');
+            if (outputEl) {
+                outputEl.value = `# HATA: ${detailedMsg}`;
+            }
+
+            window.appState?.ui?.showToast?.('Hata', detailedMsg, 'error');
         } finally {
             this.setLoading(false);
         }

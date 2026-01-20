@@ -65,6 +65,11 @@ class AppController {
 
         // AI Durumunu Kontrol Et
         this.checkAiStatus();
+
+        // Initial cleanup to ensure UI is interactive
+        if (this.ui) {
+            this.ui.resetState();
+        }
     }
 
     setupKeyboardShortcuts() {
@@ -1291,4 +1296,9 @@ _Red Pather ile bulundu_`;
     }
 }
 
-window.app = new AppController();
+
+// Initialize Application on DOM Load
+document.addEventListener('DOMContentLoaded', () => {
+    window.app = new AppController();
+    console.log('🚀 Red Pather Initialized');
+});

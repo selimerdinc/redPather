@@ -50,6 +50,17 @@ code {
 }
 
 /* PREMIUM UTILS */
+input,
+textarea,
+select {
+    user-select: text !important;
+    pointer-events: auto !important;
+}
+
+button {
+    pointer-events: auto !important;
+}
+
 .glass {
     background: var(--bg-glass);
     backdrop-filter: blur(12px);
