@@ -479,3 +479,86 @@ SADECE ROBOT FRAMEWORK KODU DÖNDÜR, BAŞKA BİR ŞEY YAZMA.
         except Exception as e:
             logger.error(f"Generate keywords error: {e}")
             return None
+
+    def map_locators_cross_platform(self, source_locators: list, target_elements: list, 
+                                     source_platform: str = "ANDROID", target_platform: str = "IOS",
+                                     screenshot_bytes=None):
+        """
+        Android locator'larını iOS'a (veya tersi) dönüştürür.
+        
+        Args:
+            source_locators: Kaynak locator listesi [{variable, locator, text_hint}, ...]
+            target_elements: Hedef platformdaki elementler (scan sonucu)
+            source_platform: Kaynak platform (ANDROID veya IOS)
+            target_platform: Hedef platform (ANDROID veya IOS)
+            screenshot_bytes: Hedef ekran görüntüsü (opsiyonel, daha iyi eşleşme için)
+            
+        Returns:
+            list: [{variable, source_locator, target_locator, confidence, match_reason}, ...]
+        """
+        if not self.model:
+            return None
+            
+        try:
+            # Screenshot varsa image olarak hazırla
+            img = self._prepare_image(screenshot_bytes) if screenshot_bytes else None
+            
+            prompt = f"""
+You are a cross-platform mobile test automation expert. Your task is to map locators from {source_platform} to {target_platform}.
+
+SOURCE PLATFORM: {source_platform}
+TARGET PLATFORM: {target_platform}
+
+SOURCE LOCATORS (keep these variable names exactly):
+{json.dumps(source_locators, ensure_ascii=False, indent=2)}
+
+TARGET ELEMENTS (available on {target_platform} screen):
+{json.dumps(target_elements[:50], ensure_ascii=False, indent=2)}
+
+MATCHING RULES:
+1. Match by SEMANTIC MEANING - same functionality, same purpose
+2. Match by TEXT when available - buttons with same/similar text
+3. Match by POSITION if text differs - same relative position on screen
+4. Match by TYPE - button→button, input→input, label→label
+5. PRESERVE the original variable name exactly
+
+For each source locator, find the best matching target element and return:
+- variable: EXACT same variable name from source
+- source_locator: original locator from source
+- target_locator: best locator for target platform (prefer accessibility_id > id > xpath)
+- confidence: 1-100 (how confident are you in this match)
+- match_reason: brief explanation why this is a match
+
+Return JSON array. If no match found for an element, set target_locator to null and confidence to 0.
+
+Example output:
+[
+  {{
+    "variable": "${{selector_login_email_inp}}",
+    "source_locator": "id=com.app:id/email_field",
+    "target_locator": "accessibility_id=emailTextField",
+    "confidence": 95,
+    "match_reason": "Same email input field by text and position"
+  }},
+  {{
+    "variable": "${{selector_login_submit_btn}}",
+    "source_locator": "xpath=//Button[@text='Login']",
+    "target_locator": "accessibility_id=loginButton",
+    "confidence": 90,
+    "match_reason": "Login button matched by text 'Login'"
+  }}
+]
+
+Return ONLY valid JSON array, no markdown or explanation.
+"""
+            
+            if img:
+                response = self.model.generate_content([prompt, img])
+            else:
+                response = self.model.generate_content(prompt)
+            
+            return self._clean_json_response(response.text)
+            
+        except Exception as e:
+            logger.error(f"Map locators cross-platform error: {e}")
+            return None
