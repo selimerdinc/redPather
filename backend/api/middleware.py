@@ -46,8 +46,8 @@ def setup_error_handlers(app):
         # Clickjacking Protection
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         
-        # Content Security Policy (relaxed for local app)
-        response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:;"
+        # Content Security Policy (relaxed for local app and external CDNs)
+        response.headers['Content-Security-Policy'] = "default-src 'self' https://cdn.tailwindcss.com https://fonts.googleapis.com https://fonts.gstatic.com 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
         
         # Referrer Policy
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
