@@ -183,13 +183,13 @@ class AppController {
 
             // 1. Durum: Aynı source hash (kesinlikle aynı ekran)
             if (this.lastSourceHash === data.source_hash && this.lastAiPageName) {
-                console.log("🚀 Skipping AI: Source hash is identical");
+
                 skipAi = true;
             }
 
             // 2. Durum: AI daha önce bir isim bulmuş ve heuristic isim hala aynı (muhtemelen aynı sayfa, ufak değişiklikler var)
             if (!skipAi && this.lastHeuristicPageName === data.page_name && this.lastAiPageName) {
-                console.log("🚀 Skipping AI: Heuristic page name matches previous state");
+
                 skipAi = true;
             }
 

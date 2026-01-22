@@ -87,7 +87,7 @@ class JiraService:
                 }
                 if priority in priority_map:
                     payload["fields"]["priority"] = {"id": priority_map[priority]}
-            except:
+            except Exception:
                 pass
             
             response = requests.post(url, json=payload, headers=headers, timeout=30)

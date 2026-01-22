@@ -224,14 +224,14 @@ class LocatorMapper {
     }
 
     async runMapping() {
-        console.log('🚀 [MAPPER] runMapping() called');
+
         if (this.isProcessing) {
-            console.log('⚠️ [MAPPER] Already processing, skipping');
+
             return;
         }
 
         const input = document.getElementById('mapper-input').value.trim();
-        console.log('📝 [MAPPER] Input length:', input.length);
+
 
         if (!input) {
             window.appState?.ui?.showToast?.('Uyarı', 'Lütfen locator girin', 'warning');
@@ -243,7 +243,7 @@ class LocatorMapper {
         const inputFormat = document.getElementById('mapper-input-format').value;
         const outputFormat = document.getElementById('mapper-output-format').value;
 
-        console.log('📤 [MAPPER] Calling API:', { sourcePlatform, targetPlatform, inputFormat, outputFormat });
+
 
         if (sourcePlatform === targetPlatform) {
             window.appState?.ui?.showToast?.('Uyarı', 'Kaynak ve hedef platform aynı olamaz', 'warning');
@@ -254,7 +254,7 @@ class LocatorMapper {
         document.getElementById('mapper-output').value = 'İşleniyor...';
 
         try {
-            console.log('📡 [MAPPER] Making API request...');
+
             const result = await window.api.mapLocators(
                 input,
                 inputFormat,
@@ -263,20 +263,18 @@ class LocatorMapper {
                 outputFormat
             );
 
-            console.log('📥 [MAPPER] API Response:', result);
-            console.log('📥 [MAPPER] result.output:', result?.output);
-            console.log('📥 [MAPPER] result.stats:', result?.stats);
+
 
             this.lastResult = result;
 
             // Show output
             const outputVal = result?.output || '# API döndü ama output boş.';
-            console.log('📝 [MAPPER] Setting output to:', outputVal.substring(0, 100));
+
 
             const outputEl = document.getElementById('mapper-output');
             if (outputEl) {
                 outputEl.value = outputVal;
-                console.log('✅ [MAPPER] Output element updated');
+
             } else {
                 console.error('❌ [MAPPER] Output element NOT FOUND!');
             }
@@ -285,7 +283,9 @@ class LocatorMapper {
             const stats = result?.stats || { matched: 0, total: 0, avg_confidence: 0 };
             const statsEl = document.getElementById('mapper-stats');
             if (statsEl) {
-                statsEl.textContent = `${stats.matched}/${stats.total} eşleşti (doğruluk: ${stats.avg_confidence}%)`;
+                // Eşleşme yüzdesini hesapla
+                const matchPercent = stats.total > 0 ? Math.round((stats.matched / stats.total) * 100) : 0;
+                statsEl.textContent = `${stats.matched}/${stats.total} eşleşti (%${matchPercent})`;
                 statsEl.classList.remove('hidden');
             }
 

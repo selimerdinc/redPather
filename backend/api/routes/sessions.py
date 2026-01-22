@@ -129,7 +129,7 @@ def verify_session():
                             'bundleId': caps.get('bundleId', '')
                         }
                     }))
-            except:
+            except Exception:
                 continue
         
         return jsonify(create_success_response(data={'valid': False}))

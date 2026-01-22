@@ -15,7 +15,8 @@
 <body
     class="bg-slate-950 text-slate-100 min-h-screen overflow-hidden font-sans flex flex-col h-screen accent-indigo-500">
 
-    <header class="h-14 glass flex items-center justify-between px-4 z-50 shrink-0 sticky top-0 shadow-lg">
+    <header
+        class="h-12 glass flex items-center justify-between px-2 z-50 shrink-0 sticky top-0 shadow-lg header-no-scroll">
 
         <div class="flex items-center gap-2">
             <!-- Logo -->
@@ -36,7 +37,8 @@
             <!-- Connection Status -->
             <div id="connectionStatus"
                 class="flex items-center gap-2 px-2 py-1 rounded-full bg-[#18181b] border border-[#27272a] tooltip-btn"
-                data-tooltip="Appium Durumu">
+                data-tooltip="Appium Bağlantı Durumu
+Cihazınızla bağlantı aktif mi gösterir">
                 <div id="connectionDot" class="w-1.5 h-1.5 rounded-full bg-gray-500"></div>
                 <span id="connectionText" class="text-[8px] font-bold text-gray-500 uppercase hidden lg:block">BAĞLANTI
                     YOK</span>
@@ -47,7 +49,8 @@
             <!-- REC Button -->
             <button id="recordBtn" onclick="window.toggleRecordMode()"
                 class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#27272a] bg-[#18181b] text-gray-400 hover:text-white transition-all text-[9px] font-bold group tooltip-btn"
-                data-tooltip="Kayıt">
+                data-tooltip="🎬 Kayıt Modu
+Adımları otomatik kaydet ve test script oluştur">
                 <div class="w-1.5 h-1.5 rounded-full bg-current transition-transform group-active:scale-75"></div>
                 <span class="hidden md:inline">REC</span>
                 <span id="stepCountBadge" class="hidden px-1 text-[7px] bg-red-600 text-white rounded-full">0</span>
@@ -75,7 +78,8 @@
                     placeholder="page">
                 <button onclick="window.aiRecognizePage()"
                     class="w-5 h-5 flex items-center justify-center rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-colors tooltip-btn"
-                    data-tooltip="AI İsim Öner">
+                    data-tooltip="🤖 AI Sayfa İsmi
+Ekran görüntüsünden sayfa adını otomatik tahmin et">
                     <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -86,8 +90,9 @@
             <div class="w-px h-4 bg-[#27272a] hidden sm:block"></div>
 
             <div class="hidden sm:flex items-center gap-3">
-                <div class="flex items-center gap-1.5 cursor-pointer tooltip-btn" data-tooltip="Nav Modu"
-                    onclick="document.getElementById('navMode').click()">
+                <div class="flex items-center gap-1.5 cursor-pointer tooltip-btn" data-tooltip="🧭 Navigasyon Modu
+Aktifken: Tıklama = Navigasyon
+Pasifken: Tıklama = Element Seç" onclick="document.getElementById('navMode').click()">
                     <div class="nav-switch scale-75" id="nav-switch-ui">
                         <div class="switch-dot"></div>
                     </div>
@@ -95,8 +100,8 @@
                     <span class="text-[9px] font-bold text-gray-500 hidden xl:block uppercase">NAV</span>
                 </div>
 
-                <div class="flex items-center gap-1.5 cursor-pointer tooltip-btn" data-tooltip="Doğrula"
-                    onclick="document.getElementById('autoVerify').click()">
+                <div class="flex items-center gap-1.5 cursor-pointer tooltip-btn" data-tooltip="✅ Otomatik Doğrulama
+Locator'ların çalışıp çalışmadığını kontrol et" onclick="document.getElementById('autoVerify').click()">
                     <div class="verify-switch active scale-75" id="verify-switch-ui">
                         <div class="switch-dot"></div>
                     </div>
@@ -114,66 +119,69 @@
                 class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5 shadow-2xl hidden md:flex backdrop-blur-md">
                 <button onclick="window.performScroll('up')"
                     class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all active:scale-90 tooltip-btn"
-                    data-tooltip="Yukarı"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
+                    data-tooltip="⬆️ Yukarı Kaydır
+Ekranı yukarı kaydır"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7">
                         </path>
                     </svg></button>
                 <button onclick="window.performScroll('down')"
                     class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all active:scale-90 tooltip-btn"
-                    data-tooltip="Aşağı"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    data-tooltip="⬇️ Aşağı Kaydır
+Ekranı aşağı kaydır"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7">
                         </path>
                     </svg></button>
                 <div class="w-px h-3.5 bg-white/10 mx-1"></div>
                 <button onclick="window.scanScreen()"
                     class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-blue-500/20 text-blue-400/80 hover:text-blue-400 transition-all active:scale-90 tooltip-btn"
-                    data-tooltip="Ekranı Yenile"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
+                    data-tooltip="🔄 Yenile
+Mevcut ekranı tekrar tara"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                         </path>
                     </svg></button>
                 <button onclick="window.triggerBack()"
                     class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all active:scale-90 tooltip-btn"
-                    data-tooltip="Geri"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    data-tooltip="⬅️ Geri
+Cihazda geri tuşuna bas"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                             d="M11 17l-5-5m0 0l5-5m-5 5h12"></path>
                     </svg></button>
                 <button onclick="window.triggerHideKeyboard()"
                     class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all active:scale-90 tooltip-btn"
-                    data-tooltip="Klavyeyi Gizle"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
+                    data-tooltip="⌨️ Klavyeyi Gizle
+Açık klavyeyi kapat"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 14l-7 7m0 0l-7-7m7 7V3M5 20h14"></path>
                     </svg></button>
             </div>
 
-            <!-- Main Actions -->
-            <div class="flex items-center gap-2 ml-1">
+            <!-- Main Actions - Kompakt -->
+            <div class="flex items-center gap-1 ml-1 flex-shrink-0">
                 <button onclick="window.copyAllVariables()" id="copyAllBtn"
-                    class="hidden opacity-0 scale-95 transition-all duration-300 bg-[#18181b] hover:bg-[#27272a] text-gray-300 border border-[#27272a] hover:border-white/20 px-3 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1.5 active:scale-95 group tooltip-btn"
-                    data-tooltip="Değişkenleri Kopyala">
+                    class="hidden opacity-0 scale-95 transition-all duration-300 bg-[#18181b] hover:bg-[#27272a] text-gray-300 border border-[#27272a] hover:border-white/20 px-2 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1 active:scale-95 group tooltip-btn"
+                    data-tooltip="📋 Locator'ları Kopyala
+Tüm element değişkenlerini Robot Framework formatında panoya kopyala">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
-                    <span class="hidden xl:inline">KOPYALA</span>
                 </button>
 
                 <button onclick="window.translateNamesWithAI()" id="translateAIBtn"
-                    class="hidden opacity-0 scale-95 transition-all duration-300 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white px-3 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1.5 active:scale-95 group tooltip-btn border border-white/10"
-                    data-tooltip="AI ile İsimleri Çevir">
+                    class="hidden opacity-0 scale-95 transition-all duration-300 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white px-2 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1 active:scale-95 group tooltip-btn border border-white/10"
+                    data-tooltip="🌐 AI ile İngilizce'ye Çevir
+Değişken isimlerini yapay zeka ile İngilizce'ye çevir ve optimize et">
                     <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                     </svg>
-                    <span class="hidden xl:inline">AI ÇEVİR</span>
                 </button>
 
                 <button onclick="window.copyAllWithAI()" id="copyAllAIBtn"
-                    class="hidden opacity-0 scale-95 transition-all duration-300 relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 hover:shadow-purple-500/20 text-white px-3.5 py-2 rounded-xl text-[10px] font-bold flex items-center gap-2 shadow-lg active:scale-95 group tooltip-btn border border-white/10"
-                    data-tooltip="AI Keywords">
+                    class="hidden opacity-0 scale-95 transition-all duration-300 relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 hover:shadow-purple-500/20 text-white px-2 py-1.5 rounded-xl text-[9px] font-bold flex items-center gap-1 shadow-lg active:scale-95 group tooltip-btn border border-white/10"
+                    data-tooltip="🤖 AI Keywords Üret
+Yapay zeka ile Robot Framework keyword'leri ve test adımları oluştur">
                     <div
                         class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000">
                     </div>
@@ -181,7 +189,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                             d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
-                    <span class="relative z-10 hidden lg:inline tracking-wide">AI KEYWORDS</span>
                     <svg id="aiLoadingSpinner" class="hidden w-3.5 h-3.5 animate-spin relative z-10" fill="none"
                         viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
@@ -193,21 +200,23 @@
                 </button>
 
                 <button onclick="window.scanScreen()" id="scanBtn"
-                    class="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white px-5 py-2 rounded-xl text-[10px] font-black tracking-[0.1em] transition-all shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:shadow-[0_0_25px_rgba(220,38,38,0.4)] active:scale-95 flex items-center gap-2 tooltip-btn border border-white/10"
-                    data-tooltip="Tümünü Yenile">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    class="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white px-3 py-1.5 rounded-lg text-[9px] font-black transition-all shadow-[0_0_15px_rgba(220,38,38,0.2)] hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-95 flex items-center gap-1 tooltip-btn border border-white/10"
+                    data-tooltip="⚡ SCAN - Ekranı Tara
+Cihaz ekranını analiz et ve tüm UI elementlerini bul">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
                             d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    <span class="hidden sm:inline">SCAN</span>
                 </button>
+
 
 
                 <!-- Utility Buttons Container -->
                 <div class="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/5">
                     <button onclick="window.openLocatorMapper()"
                         class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-violet-500/20 text-violet-400 hover:text-violet-300 transition-all tooltip-btn"
-                        data-tooltip="Locator Mapper">
+                        data-tooltip="🔄 Locator Mapper
+Android locator'larını iOS'a veya iOS'u Android'e dönüştür">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -215,7 +224,8 @@
                     </button>
                     <button onclick="window.toggleLogPanel()"
                         class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-all tooltip-btn"
-                        data-tooltip="Loglar">
+                        data-tooltip="📜 Cihaz Logları
+Android/iOS sistem loglarını görüntüle">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -224,7 +234,8 @@
 
                     <button onclick="window.openConfig()"
                         class="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-all shadow-lg tooltip-btn border border-white/10"
-                        data-tooltip="Ayarlar">
+                        data-tooltip="⚙️ Ayarlar
+Appium, cihaz ve AI yapılandırması">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -614,6 +625,11 @@
     <script src="{{ url_for('static', filename='js/controllers/device-controller.js') }}"></script>
     <script src="{{ url_for('static', filename='js/controllers/ai-controller.js') }}"></script>
     <script src="{{ url_for('static', filename='js/controllers/log-controller.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/controllers/scan-controller.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/controllers/action-controller.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/controllers/export-controller.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/components/tooltip-manager.js') }}"></script>
+
 
     <!-- App Main -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>

@@ -1,6 +1,6 @@
 import logging
 from flask import Blueprint, request, jsonify
-from backend.core.context import config_mgr, cache_mgr
+from backend.core.context import config_mgr, cache_mgr, gemini_service
 from backend.api.services.gemini_service import GeminiService
 from backend.api.middleware import create_success_response, create_error_response
 import base64
@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 ai_bp = Blueprint('ai', __name__)
 
 def get_gemini_service():
+    """Get fresh GeminiService with latest config (for when API key changes)."""
     api_key = config_mgr.get('GEMINI_API_KEY')
     custom_prompt = config_mgr.get('AI_CUSTOM_PROMPT', "")
     return GeminiService(api_key, custom_prompt)

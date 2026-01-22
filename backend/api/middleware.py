@@ -32,8 +32,33 @@ def create_success_response(data: dict = None, message: str = None) -> dict:
 
 def setup_error_handlers(app):
     """
-    Register global error handlers for the Flask app
+    Register global error handlers and security middleware for the Flask app
     """
+    
+    # ===== SECURITY HEADERS =====
+    @app.after_request
+    def add_security_headers(response):
+        """Add security headers to every response"""
+        # XSS Protection
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        
+        # Clickjacking Protection
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        
+        # Content Security Policy (relaxed for local app)
+        response.headers['Content-Security-Policy'] = "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; img-src 'self' data: blob:;"
+        
+        # Referrer Policy
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        
+        # Cache control for sensitive endpoints
+        if '/api/' in str(response.headers.get('Location', '')):
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+        
+        return response
+
 
     @app.errorhandler(RedPatherError)
     def handle_redpather_error(error):

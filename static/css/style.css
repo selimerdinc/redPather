@@ -57,8 +57,29 @@ select {
     pointer-events: auto !important;
 }
 
+/* Button pointer-events: Modal overlay kapalıyken butonlar tıklanamaz olmalı */
 button {
-    pointer-events: auto !important;
+    pointer-events: auto;
+}
+
+/* Modal kapalıyken içindeki TÜM elemanlar tıklanamaz olmalı */
+.modal-overlay:not(.open) * {
+    pointer-events: none !important;
+}
+
+/* Header - Tooltip'lerin görünmesi için overflow visible */
+.header-no-scroll {
+    overflow: visible;
+}
+
+/* Header butonları kompakt */
+header button {
+    flex-shrink: 0;
+}
+
+/* AI butonları daha kompakt */
+header .flex-shrink-0 button {
+    padding: 0.375rem 0.5rem !important;
 }
 
 .glass {
@@ -530,51 +551,20 @@ body.nav-mode .target-box:hover {
     border-left-color: #3b82f6;
 }
 
-/* TOOLTIPS */
+/* CSS TOOLTIPS DEVRE DIŞI - Sadece JS TooltipManager kullanılıyor */
+/* 1.5 saniye gecikme ile açılır, tıklayınca kapanır */
 .tooltip-btn {
     position: relative;
 }
 
-.tooltip-btn::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: -35px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-5px);
-    background: #18181b;
-    color: #e4e4e7;
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 600;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    border: 1px solid #3f3f46;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    z-index: 100;
+/* CSS tooltip'leri tamamen kapalı - JS yönetiyor */
+.tooltip-btn::after,
+.tooltip-btn::before,
+header .tooltip-btn::after,
+header .tooltip-btn::before {
+    display: none !important;
 }
 
-.tooltip-btn::before {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%) translateY(-5px);
-    border-width: 6px;
-    border-style: solid;
-    border-color: transparent transparent #3f3f46 transparent;
-    opacity: 0;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    z-index: 100;
-}
-
-.tooltip-btn:hover::after,
-.tooltip-btn:hover::before {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
 
 /* XML TREE STYLES */
 #source-view-container {
@@ -907,22 +897,37 @@ body.nav-mode .target-box:hover {
 
 /* ===== RESPONSIVE BREAKPOINTS ===== */
 
+/* Large Tablet - 1024px */
+@media (max-width: 1024px) {
+    header {
+        padding: 0.5rem 0.75rem;
+    }
+
+    /* Üst bar butonlarını sıkıştır */
+    .tooltip-btn::after {
+        max-width: 200px;
+        font-size: 10px;
+        padding: 8px 10px;
+    }
+}
+
 /* Tablet - 768px */
 @media (max-width: 768px) {
     header {
-        padding: 0.5rem;
-        height: auto;
-        flex-wrap: wrap;
-        gap: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        height: 48px;
+        gap: 0.25rem;
+        overflow-x: auto;
+        flex-wrap: nowrap;
     }
 
     .segmented-control {
-        width: 120px;
+        width: 110px;
         height: 28px;
     }
 
     #pagePrefix {
-        width: 60px;
+        width: 50px;
     }
 
     .list-item {
@@ -933,18 +938,43 @@ body.nav-mode .target-box:hover {
         margin: 1rem;
         max-height: 90vh;
     }
+
+    /* Tooltip'leri küçük ekranda ayarla */
+    .tooltip-btn::after {
+        max-width: 180px;
+        font-size: 9px;
+        padding: 6px 8px;
+        bottom: calc(100% + 8px);
+    }
+
+    .tooltip-btn::before {
+        bottom: calc(100% + 2px);
+        border-width: 6px;
+    }
 }
 
 /* Mobile - 480px */
 @media (max-width: 480px) {
     header {
         padding: 0.25rem 0.5rem;
+        gap: 0.25rem;
     }
 
     .segmented-control {
-        width: 100px;
+        width: 90px;
         height: 26px;
         font-size: 9px;
+    }
+
+    /* Butonları küçült ama görünür tut */
+    header button {
+        padding: 0.35rem 0.5rem !important;
+        font-size: 8px !important;
+    }
+
+    header button svg {
+        width: 14px !important;
+        height: 14px !important;
     }
 
     .list-item code {
@@ -953,6 +983,13 @@ body.nav-mode .target-box:hover {
 
     .hidden-mobile {
         display: none !important;
+    }
+
+    /* Mobilde tooltip'ler daha küçük */
+    .tooltip-btn::after {
+        max-width: 150px;
+        font-size: 8px;
+        padding: 5px 7px;
     }
 }
 
