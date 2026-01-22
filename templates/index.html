@@ -97,7 +97,7 @@ Pasifken: Tıklama = Element Seç" onclick="document.getElementById('navMode').c
                         <div class="switch-dot"></div>
                     </div>
                     <input type="checkbox" id="navMode" class="hidden" onchange="window.toggleNavMode(this)">
-                    <span class="text-[9px] font-bold text-gray-500 hidden 2xl:block uppercase">NAV</span>
+                    <span class="text-[9px] font-bold text-gray-500 hidden xl:block uppercase">NAV</span>
                 </div>
 
                 <div class="flex items-center gap-1.5 cursor-pointer tooltip-btn" data-tooltip="✅ Otomatik Doğrulama
@@ -107,7 +107,7 @@ Locator'ların çalışıp çalışmadığını kontrol et" onclick="document.ge
                     </div>
                     <input type="checkbox" id="autoVerify" class="hidden" checked
                         onchange="window.toggleVerifyUI(this)">
-                    <span class="text-[9px] font-bold text-gray-500 hidden 2xl:block uppercase">VERIFY</span>
+                    <span class="text-[9px] font-bold text-gray-500 hidden xl:block uppercase">VERIFY</span>
                 </div>
             </div>
         </div>
@@ -167,6 +167,40 @@ Tüm element değişkenlerini Robot Framework formatında panoya kopyala">
                             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                     <span class="hidden xl:inline">KOPYALA</span>
+                </button>
+
+                <!-- Restored AI Buttons -->
+                <button onclick="window.translateNamesWithAI()" id="translateAIBtn"
+                    class="hidden opacity-0 scale-95 transition-all duration-300 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white px-2 py-1.5 rounded-lg text-[9px] font-bold flex items-center gap-1 active:scale-95 group tooltip-btn border border-white/10"
+                    data-tooltip="🌐 AI ile İngilizce'ye Çevir
+Değişken isimlerini yapay zeka ile İngilizce'ye çevir ve optimize et">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                    </svg>
+                    <span class="hidden xl:inline">EN</span>
+                </button>
+
+                <button onclick="window.copyAllWithAI()" id="copyAllAIBtn"
+                    class="hidden opacity-0 scale-95 transition-all duration-300 relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 hover:shadow-purple-500/20 text-white px-2 py-1.5 rounded-xl text-[9px] font-bold flex items-center gap-1 shadow-lg active:scale-95 group tooltip-btn border border-white/10"
+                    data-tooltip="🤖 AI Keywords Üret
+Yapay zeka ile Robot Framework keyword'leri ve test adımları oluştur">
+                    <div
+                        class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000">
+                    </div>
+                    <svg class="w-3.5 h-3.5 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <svg id="aiLoadingSpinner" class="hidden w-3.5 h-3.5 animate-spin relative z-10" fill="none"
+                        viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
+                    </svg>
+                    <span class="hidden xl:inline">KEYWORDS</span>
                 </button>
 
                 <button onclick="window.scanScreen()" id="scanBtn"
