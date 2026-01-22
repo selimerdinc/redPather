@@ -405,13 +405,18 @@ Appium, cihaz ve AI yapılandırması">
                     onclick="window.handleScreenshotClick(event)">
                 <div id="overlays" class="absolute inset-0 w-full h-full pointer-events-none"></div>
             </div>
-            <div id="empty-state" class="text-center opacity-40">
-                <div class="text-6xl mb-4">📱</div>
-                <p class="text-sm font-mono text-gray-500">Cihaz bekleniyor...</p>
+            <div id="empty-state" class="flex flex-col items-center justify-center opacity-40 py-20 grayscale">
+                <div class="mb-4">
+                    <svg class="w-20 h-20 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+                            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <p class="text-[11px] font-black uppercase tracking-[0.2em] text-gray-500">Cihaz bekleniyor...</p>
             </div>
         </div>
 
-        <div class="w-7/12 bg-[#09090b]/40 backdrop-blur-sm flex flex-col">
+        <div class="w-7/12 bg-black/60 backdrop-blur-xl flex flex-col">
             <div class="px-4 py-3 border-b border-white/5 bg-black/20 flex justify-between items-center">
                 <div class="segmented-control" id="view-toggle">
                     <div id="view-slider" class="segment-slider"></div>
