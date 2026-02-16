@@ -149,7 +149,10 @@ class ElementListManager {
             instance.handleVerify(new Event('click'), index, btn, locator);
         };
         window._copyElement = (variable, locator) => {
-            ElementListManager.staticHandleCopy(variable, locator);
+            const txt = `\${${variable}}\t${locator}`;
+            navigator.clipboard.writeText(txt).then(() => {
+                if (window.app && window.app.ui) window.app.ui.showToast("Kopyalandı", "Satır kopyalandı", 'success');
+            });
         };
     }
 
