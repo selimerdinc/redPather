@@ -830,8 +830,8 @@ class AppController {
                 if (!config.api_token) {
                     try {
                         const savedConfig = await this.api.getConfig();
-                        if (savedConfig?.data?.JIRA_TOKEN) {
-                            config.api_token = savedConfig.data.JIRA_TOKEN;
+                        if (savedConfig?.JIRA_TOKEN) {
+                            config.api_token = savedConfig.JIRA_TOKEN;
                         }
                     } catch (e) { }
                 }
