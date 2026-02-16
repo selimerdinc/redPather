@@ -125,17 +125,30 @@ IOS_SIGN_ID=iPhone Developer
         }
 
     def validate_config(self, config: Dict[str, Any], platform: str) -> tuple[bool, Optional[str]]:
-        """Orijinal Validasyon Mantığı - Değiştirilmedi"""
+        """Validate config with physical path checks"""
         try:
             if platform == "ANDROID":
                 pkg = config.get("ANDROID_PKG", "")
                 act = config.get("ANDROID_ACT", "")
+                
+                # Basic length checks
                 if len(pkg) < ConfigConstants.MIN_PKG_LENGTH:
                     return False, f"Android package name too short (min {ConfigConstants.MIN_PKG_LENGTH} chars)"
                 if len(act) < ConfigConstants.MIN_PKG_LENGTH:
                     return False, f"Android activity name too short (min {ConfigConstants.MIN_PKG_LENGTH} chars)"
-                if not config.get("ANDROID_DEVICE"):
+                
+                # Device ID check
+                device_id = config.get("ANDROID_DEVICE")
+                if not device_id:
                     return False, "Android device name is required"
+                
+                # Physical SDK Path Check (macOS only)
+                if sys.platform == "darwin":
+                    sdk_root = os.environ.get("ANDROID_HOME")
+                    if not sdk_root or not os.path.exists(sdk_root):
+                        logger.warning(f"⚠️ ANDROID_HOME not set or invalid: {sdk_root}")
+                        # Don't block validation, but warn via log
+                    
             elif platform == "IOS":
                 bundle = config.get("IOS_BUNDLE", "")
                 if not bundle or len(bundle) < ConfigConstants.MIN_BUNDLE_LENGTH:

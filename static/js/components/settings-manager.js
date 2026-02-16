@@ -193,8 +193,8 @@ class SettingsManager {
             window.closeConfig();
 
             // Otomatik scan başlat
-            if (window.app && typeof window.app.scan === 'function') {
-                setTimeout(() => window.app.scan(), 500);
+            if (window.scanScreen) {
+                setTimeout(() => window.scanScreen(), 500);
             }
         } catch (e) {
             console.error("Attach session error:", e);

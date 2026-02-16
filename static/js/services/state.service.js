@@ -181,12 +181,6 @@ class StateService {
         // SessionStorage'a kaydet
         sessionStorage.setItem('recorder_steps', JSON.stringify(steps));
         window.debug?.log("Step Recorded:", newStep);
-
-        // ✅ YENİ: Step counter badge güncelle
-        const badge = document.getElementById('stepCountBadge');
-        if (badge && this.get('recorder.isRecording')) {
-            badge.textContent = steps.length;
-        }
     }
 
     /**

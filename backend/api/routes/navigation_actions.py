@@ -32,13 +32,15 @@ def scroll():
         logger.info(f"Scrolling {direction} on {platform}")
         success = driver_mgr.perform_scroll(direction)
 
-        if success:
-            crash_detector.add_action("scroll", {"direction": direction})
-            
-            return jsonify(create_success_response(
-                data={"scrolled": direction},
-                message=f"Scrolled {direction} successfully"
-            ))
+        if not success:
+            raise DriverError("Kaydırma başarısız", "Cihaz üzerinde kaydırma işlemi tamamlanamadı")
+
+        crash_detector.add_action("scroll", {"direction": direction})
+        
+        return jsonify(create_success_response(
+            data={"scrolled": direction},
+            message=f"Scrolled {direction} successfully"
+        ))
 
     except (DriverError, ValidationError) as e:
         raise
@@ -58,13 +60,15 @@ def back():
         logger.info("Performing back navigation")
         success = driver_mgr.go_back()
 
-        if success:
-            crash_detector.add_action("back", {})
-            
-            return jsonify(create_success_response(
-                data={"back": True},
-                message="Back navigation successful"
-            ))
+        if not success:
+            raise DriverError("Geri navigasyon başarısız", "Cihaz üzerinde geri işlemi tamamlanamadı")
+
+        crash_detector.add_action("back", {})
+        
+        return jsonify(create_success_response(
+            data={"back": True},
+            message="Back navigation successful"
+        ))
 
     except DriverError as e:
         raise
@@ -84,11 +88,13 @@ def hide_keyboard():
         logger.info("Hiding keyboard")
         success = driver_mgr.hide_keyboard()
 
-        if success:
-            return jsonify(create_success_response(
-                data={"hidden": success},
-                message="Keyboard hide attempted"
-            ))
+        if not success:
+            raise DriverError("Klavye gizlenemedi", "Klavye gizleme işlemi tamamlanamadı")
+
+        return jsonify(create_success_response(
+            data={"hidden": True},
+            message="Keyboard hide attempted"
+        ))
 
     except DriverError as e:
         raise

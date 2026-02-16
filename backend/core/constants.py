@@ -1,6 +1,16 @@
 """
 Application-wide constants
 """
+from appium.webdriver.common.appiumby import AppiumBy
+
+# Locator strategy mapping (shared across routes)
+STRATEGY_MAP = {
+    'id': AppiumBy.ID,
+    'xpath': AppiumBy.XPATH,
+    'accessibility_id': AppiumBy.ACCESSIBILITY_ID,
+    'name': AppiumBy.NAME,
+    'class_name': AppiumBy.CLASS_NAME
+}
 
 # Platform definitions
 VALID_PLATFORMS = ["ANDROID", "IOS"]

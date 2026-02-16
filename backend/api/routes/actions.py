@@ -18,7 +18,7 @@ from backend.api.routes.navigation_actions import navigation_bp
 logger = logging.getLogger(__name__)
 
 # Main blueprint that combines all action blueprints
-actions_bp = Blueprint('actions', __name__)
+logger = logging.getLogger(__name__)
 
 
 def register_action_blueprints(app):

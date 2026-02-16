@@ -17,14 +17,14 @@ class TooltipManager {
 
         // Event delegation
         document.addEventListener('mouseenter', (e) => {
-            const btn = e.target.closest('.tooltip-btn');
+            const btn = e.target && e.target.closest ? e.target.closest('.tooltip-btn') : null;
             if (btn && btn.dataset.tooltip) {
                 this.scheduleShow(btn);
             }
         }, true);
 
         document.addEventListener('mouseleave', (e) => {
-            const btn = e.target.closest('.tooltip-btn');
+            const btn = e.target && e.target.closest ? e.target.closest('.tooltip-btn') : null;
             if (btn) {
                 this.cancelAndHide();
             }

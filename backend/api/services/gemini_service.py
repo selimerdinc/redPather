@@ -28,7 +28,7 @@ class GeminiService:
         self.api_key = api_key
         self.custom_prompt = custom_prompt
         self.client = None
-        self.model_name = "gemini-2.0-flash-exp"
+        self.model_name = "gemini-2.5-flash"
         
         if self.api_key:
             try:
@@ -55,7 +55,8 @@ class GeminiService:
     def _generate_content(self, prompt: str, image: Image.Image = None) -> Optional[str]:
         """Generate content using the new Client API"""
         if not self.client:
-            return None
+            logger.warning("Gemini client is not initialized - API key may be missing")
+            raise ValueError("AI servisi yapılandırılmamış. Lütfen Ayarlar'dan Gemini API key'inizi girin.")
         
         try:
             contents = [prompt]
@@ -66,10 +67,17 @@ class GeminiService:
                 model=self.model_name,
                 contents=contents
             )
+            
+            if not response or not response.text:
+                logger.warning(f"Gemini returned empty response")
+                raise ValueError("AI boş yanıt döndü. Lütfen tekrar deneyin.")
+            
             return response.text
+        except ValueError:
+            raise  # Re-raise our custom errors
         except Exception as e:
             logger.error(f"Gemini generate_content error: {e}")
-            return None
+            raise RuntimeError(f"AI servis hatası: {str(e)}")
 
     # ==========================================
     # PAGE RECOGNITION
@@ -97,18 +105,16 @@ class GeminiService:
     def suggest_xpath(self, element_data: dict, xml_context: str = None) -> Optional[str]:
         """Suggest XPath for an element"""
         if not self.client:
-            return None
+            raise ValueError("AI servisi yapılandırılmamış. Lütfen Ayarlar'dan Gemini API key'inizi girin.")
         
-        try:
-            prompt = PromptTemplates.xpath_suggestion(
-                json.dumps(element_data),
-                self._get_user_instructions()
-            )
-            result = self._generate_content(prompt)
-            return result.strip() if result else None
-        except Exception as e:
-            logger.error(f"Gemini XPath suggestion error: {e}")
-            return None
+        prompt = PromptTemplates.xpath_suggestion(
+            json.dumps(element_data),
+            self._get_user_instructions()
+        )
+        result = self._generate_content(prompt)
+        if not result or not result.strip():
+            raise ValueError("AI XPath önerisi boş döndü. Lütfen tekrar deneyin.")
+        return result.strip()
 
     # ==========================================
     # SCRIPT GENERATION
@@ -117,21 +123,19 @@ class GeminiService:
     def generate_script(self, steps: list, format: str = "robot") -> Optional[str]:
         """Generate test script from recorded steps"""
         if not self.client:
-            return None
+            raise ValueError("AI servisi yapılandırılmamış. Lütfen Ayarlar'dan Gemini API key'inizi girin.")
             
-        try:
-            user_rules = f"\nUser Formatting Rules/Prompt: {self.custom_prompt}" if self.custom_prompt else ""
-            format_desc = "Robot Framework" if format == "robot" else "Python (Pytest + Appium)"
-            
-            prompt = PromptTemplates.script_generation(
-                json.dumps(steps), format_desc, user_rules
-            )
-            
-            result = self._generate_content(prompt)
-            return result.strip() if result else None
-        except Exception as e:
-            logger.error(f"Gemini script generation error: {e}")
-            return None
+        user_rules = f"\nUser Formatting Rules/Prompt: {self.custom_prompt}" if self.custom_prompt else ""
+        format_desc = "Robot Framework" if format == "robot" else "Python (Pytest + Appium)"
+        
+        prompt = PromptTemplates.script_generation(
+            json.dumps(steps), format_desc, user_rules
+        )
+        
+        result = self._generate_content(prompt)
+        if not result or not result.strip():
+            raise ValueError("AI script üretimi boş döndü. Lütfen tekrar deneyin.")
+        return result.strip()
 
     # ==========================================
     # ELEMENT ANALYSIS
@@ -163,18 +167,17 @@ class GeminiService:
     def translate_variable_names(self, variable_names: list) -> Optional[dict]:
         """Translate and optimize variable names to English"""
         if not self.client:
-            return None
+            raise ValueError("AI servisi yapılandırılmamış. Lütfen Ayarlar'dan Gemini API key'inizi girin.")
             
-        try:
-            prompt = PromptTemplates.translate_variable_names(
-                json.dumps(variable_names, ensure_ascii=False)
-            )
-            
-            result = self._generate_content(prompt)
-            return ResponseParser.clean_json_response(result) if result else None
-        except Exception as e:
-            logger.error(f"Translate variable names error: {e}")
-            return None
+        prompt = PromptTemplates.translate_variable_names(
+            json.dumps(variable_names, ensure_ascii=False)
+        )
+        
+        result = self._generate_content(prompt)
+        parsed = ResponseParser.clean_json_response(result) if result else None
+        if not parsed:
+            raise ValueError("AI çeviri sonucu ayrıştırılamadı. Lütfen tekrar deneyin.")
+        return parsed
 
     # ==========================================
     # VISUAL AUDIT
@@ -184,24 +187,23 @@ class GeminiService:
                      custom_instructions: str = None) -> Optional[dict]:
         """Perform visual UI/UX audit"""
         if not self.client:
-            return None
+            raise ValueError("AI servisi yapılandırılmamış. Lütfen Ayarlar'dan Gemini API key'inizi girin.")
             
-        try:
-            img = self._prepare_image(screenshot_bytes)
-            
-            extra_context = ""
-            if custom_instructions:
-                extra_context = f"\nKRİTİK TALİMAT: {custom_instructions}"
-            elif self.custom_prompt:
-                extra_context = f"\nEk Talimat: {self.custom_prompt}"
+        img = self._prepare_image(screenshot_bytes)
+        
+        extra_context = ""
+        if custom_instructions:
+            extra_context = f"\nKRİTİK TALİMAT: {custom_instructions}"
+        elif self.custom_prompt:
+            extra_context = f"\nEk Talimat: {self.custom_prompt}"
 
-            prompt = PromptTemplates.visual_audit(extra_context)
-            
-            result = self._generate_content(prompt, img)
-            return ResponseParser.clean_json_response(result) if result else None
-        except Exception as e:
-            logger.error(f"Gemini visual audit error: {e}")
-            return None
+        prompt = PromptTemplates.visual_audit(extra_context)
+        
+        result = self._generate_content(prompt, img)
+        parsed = ResponseParser.clean_json_response(result) if result else None
+        if not parsed:
+            raise ValueError("AI görsel denetim raporu ayrıştırılamadı. Lütfen tekrar deneyin.")
+        return parsed
 
     # ==========================================
     # LOCATOR HEALING
@@ -236,27 +238,25 @@ class GeminiService:
                                   platform: str = "ANDROID") -> Optional[str]:
         """Generate Jira bug description from screenshot"""
         if not self.client:
-            return None
+            raise ValueError("AI servisi yapılandırılmamış. Lütfen Ayarlar'dan Gemini API key'inizi girin.")
             
-        try:
-            img = self._prepare_image(screenshot_bytes)
-            
-            element_context = ""
-            if element_info:
-                element_context = f"""
+        img = self._prepare_image(screenshot_bytes)
+        
+        element_context = ""
+        if element_info:
+            element_context = f"""
 Element Details:
 - Locator: {element_info.get('locator', 'N/A')}
 - Type: {element_info.get('class_name', 'N/A')}
 - Text: {element_info.get('text', 'N/A')}
 """
-            
-            prompt = PromptTemplates.bug_description(platform, element_context)
-            
-            result = self._generate_content(prompt, img)
-            return result.strip() if result else None
-        except Exception as e:
-            logger.error(f"Generate bug description error: {e}")
-            return None
+        
+        prompt = PromptTemplates.bug_description(platform, element_context)
+        
+        result = self._generate_content(prompt, img)
+        if not result or not result.strip():
+            raise ValueError("AI bug açıklaması oluşturulamadı. Lütfen tekrar deneyin.")
+        return result.strip()
 
     # ==========================================
     # ROBOT FRAMEWORK KEYWORDS GENERATION
@@ -266,32 +266,30 @@ Element Details:
                           custom_prompt: str = "") -> Optional[dict]:
         """Generate Robot Framework keywords and variables"""
         if not self.client:
-            return None
+            raise ValueError("AI servisi yapılandırılmamış. Lütfen Ayarlar'dan Gemini API key'inizi girin.")
             
-        try:
-            # Prepare element summary
-            elements_summary = [{
-                "variable": el.get("variable", ""),
-                "locator": el.get("locator", ""),
-                "type": el.get("class_name", ""),
-                "text": el.get("text", "")[:50] if el.get("text") else ""
-            } for el in elements_data]
-            
-            user_instructions = f"\n\nKullanıcı Özel Talimatları:\n{custom_prompt}" if custom_prompt else ""
-            
-            prompt = PromptTemplates.generate_keywords(
-                json.dumps(elements_summary, ensure_ascii=False, indent=2),
-                user_instructions
-            )
-            
-            img = self._prepare_image(screenshot_bytes) if screenshot_bytes else None
-            result = self._generate_content(prompt, img)
-            
-            return ResponseParser.extract_robot_sections(result) if result else None
-            
-        except Exception as e:
-            logger.error(f"Generate keywords error: {e}")
-            return None
+        # Prepare element summary
+        elements_summary = [{
+            "variable": el.get("variable", ""),
+            "locator": el.get("locator", ""),
+            "type": el.get("class_name", ""),
+            "text": el.get("text", "")[:50] if el.get("text") else ""
+        } for el in elements_data]
+        
+        user_instructions = f"\n\nKullanıcı Özel Talimatları:\n{custom_prompt}" if custom_prompt else ""
+        
+        prompt = PromptTemplates.generate_keywords(
+            json.dumps(elements_summary, ensure_ascii=False, indent=2),
+            user_instructions
+        )
+        
+        img = self._prepare_image(screenshot_bytes) if screenshot_bytes else None
+        result = self._generate_content(prompt, img)
+        
+        parsed = ResponseParser.extract_robot_sections(result) if result else None
+        if not parsed:
+            raise ValueError("AI keyword üretimi başarısız oldu. Lütfen tekrar deneyin.")
+        return parsed
 
     # ==========================================
     # CROSS-PLATFORM LOCATOR MAPPING

@@ -6,6 +6,11 @@ import webview
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
+from backend.core.logger import configure_logging
+
+# Configure logging early
+configure_logging()
+logger = logging.getLogger(__name__)
 
 # .env dosyasını yükle
 load_dotenv()
@@ -55,7 +60,7 @@ if __name__ == '__main__':
 
     # Masaüstü penceresini oluştur
     webview.create_window(
-        'Red Pather v1.2.4 [Ultimate]',
+        'Red Pather v1.2.9 [Ultimate - DeepScan V5]',
         f'http://{HOST}:{PORT}',
         width=1400,
         height=900

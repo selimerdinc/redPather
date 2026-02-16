@@ -385,17 +385,17 @@ class ConfigProfiles {
                     <div id="androidFields" class="space-y-4">
                         <div class="grid grid-cols-1 gap-4">
                             <div>
-                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">Uygulama Paketi</label>
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">📦 Uygulama Paketi</label>
                                 <input type="text" id="profile_android_pkg" placeholder="com.app.example" 
                                     class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-emerald-500/50 outline-none transition-all">
                             </div>
                             <div>
-                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">Başlangıç Aktivitesi</label>
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">🎯 Başlangıç Aktivitesi</label>
                                 <input type="text" id="profile_android_act" placeholder=".MainActivity" 
                                     class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-emerald-500/50 outline-none transition-all">
                             </div>
                              <div>
-                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">Cihaz Kimliği (ADB)</label>
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">📱 Cihaz Kimliği (ADB)</label>
                                 <input type="text" id="profile_android_device" placeholder="emulator-5554" 
                                     class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-emerald-500/50 outline-none transition-all">
                             </div>
@@ -405,20 +405,37 @@ class ConfigProfiles {
                     <div id="iosFields" class="hidden space-y-4">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">Bundle ID</label>
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">📦 Bundle ID</label>
                                 <input type="text" id="profile_ios_bundle" placeholder="com.company.app" 
                                     class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-blue-500/50 outline-none transition-all">
                             </div>
                             <div>
-                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">Model</label>
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">📱 Cihaz</label>
                                 <input type="text" id="profile_ios_device" placeholder="iPhone 15" 
                                     class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-blue-500/50 outline-none transition-all">
                             </div>
                         </div>
                         <div>
-                            <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">UDID</label>
+                            <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">🔑 UDID</label>
                             <input type="text" id="profile_ios_udid" placeholder="00008110-000C14..." 
                                 class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-blue-500/50 outline-none transition-all font-mono">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">📲 iOS Version</label>
+                                <input type="text" id="profile_ios_version" placeholder="17.0" 
+                                    class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-blue-500/50 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">🏢 Xcode Org ID</label>
+                                <input type="text" id="profile_ios_org" placeholder="TEAM_ID" 
+                                    class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-blue-500/50 outline-none transition-all">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-zinc-500 uppercase tracking-widest font-black mb-2 block">🔐 Sertifika ID</label>
+                            <input type="text" id="profile_ios_sign" placeholder="Apple Development: ..." 
+                                class="w-full px-4 py-2.5 bg-black/40 border border-white/5 rounded-xl text-white text-xs focus:border-blue-500/50 outline-none transition-all">
                         </div>
                     </div>
                 </div>

@@ -48,7 +48,10 @@ class AppController {
         // DOM Componentlerini Başlat
         if (window.XMLTreeViewer) this.xmlViewer = new XMLTreeViewer('xml-tree-root');
         if (window.OverlayManager) this.overlayMgr = new OverlayManager('overlays', 'screenshot');
-        if (window.ElementListManager) this.listMgr = new ElementListManager('elements-list');
+        if (window.ElementListManager) {
+            this.listMgr = new ElementListManager('elements-list');
+            ElementListManager.registerGlobalHelpers(this.listMgr);
+        }
 
         // ✅ YENİ: Context Menu Başlat
         if (window.ContextMenu) this.contextMenu = new ContextMenu();
@@ -237,6 +240,27 @@ class AppController {
         }
     }
 
+    async deepScanScreen() {
+        let prefix = document.getElementById('pagePrefix').value || "deep";
+
+        this.ui.setLoading(true, "DEEP SCAN BAŞLATILIYOR...");
+        this.ui.showEmptyState(false);
+        this.clearData();
+
+        try {
+            // optimized: 20 adım (backend dinamik duracak)
+            const data = await this.api.deepScan(this.currentPlatform, 20, prefix);
+
+            this.handleScanResult(data);
+            this.ui.showToast("🌊 Deep Scan", "Tüm sayfa başarıyla tarandı", "success");
+        } catch (error) {
+            console.error(error);
+            this.ui.showToast("Hata", error.userMessage || error.message || "Deep Scan başarısız oldu", "error");
+            this.ui.resetState();
+            this.ui.showEmptyState(true);
+        }
+    }
+
     _applyPagePrefixToElements(data, cleanNewPage) {
         if (data.elements && data.elements.length > 0) {
             data.elements = data.elements.map(el => {
@@ -296,16 +320,19 @@ class AppController {
     updateConnectionStatus(isConnected) {
         const dot = document.getElementById('connectionDot');
         const text = document.getElementById('connectionText');
+        const reconnectBtn = document.getElementById('reconnectBtn');
 
         if (dot && text) {
             if (isConnected) {
-                dot.className = 'w-2 h-2 rounded-full bg-green-500 animate-pulse transition-colors';
+                dot.className = 'w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse transition-all duration-500';
                 text.textContent = 'BAĞLI';
-                text.className = 'text-[9px] font-bold text-green-500 uppercase tracking-wider';
+                text.className = 'text-[8px] font-bold text-green-500 uppercase tracking-wider hidden xl:block';
+                if (reconnectBtn) reconnectBtn.classList.add('hidden');
             } else {
-                dot.className = 'w-2 h-2 rounded-full bg-red-500 transition-colors';
+                dot.className = 'w-1.5 h-1.5 rounded-full bg-red-500 transition-all duration-500';
                 text.textContent = 'BAĞLANTI YOK';
-                text.className = 'text-[9px] font-bold text-red-500 uppercase tracking-wider';
+                text.className = 'text-[8px] font-bold text-red-500 uppercase tracking-wider hidden xl:block';
+                if (reconnectBtn) reconnectBtn.classList.remove('hidden');
             }
         }
     }
@@ -450,6 +477,12 @@ class AppController {
             </div>
         `;
 
+        const escapeHtml = (str) => {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        };
+
         report.findings.forEach(finding => {
             const severityColor = finding.severity === 'high' ? 'red' : (finding.severity === 'medium' ? 'yellow' : 'blue');
             const typeEmoji = { 'UI': '🎨', 'UX': '🧠', 'Design': '📐', 'Accessibility': '♿' }[finding.type] || '🔍';
@@ -458,16 +491,16 @@ class AppController {
                 <div class="bg-[#1c1c1f] border-l-4 border-${severityColor}-600 p-3 rounded-r-lg shadow-lg">
                     <div class="flex items-center justify-between mb-1">
                         <span class="text-[10px] font-bold text-white uppercase flex items-center gap-1">
-                            ${typeEmoji} ${finding.type}
+                            ${typeEmoji} ${escapeHtml(finding.type)}
                         </span>
                         <span class="text-[9px] px-1.5 py-0.5 rounded bg-${severityColor}-900 text-${severityColor}-300 font-bold uppercase">
-                            ${finding.severity}
+                            ${escapeHtml(finding.severity)}
                         </span>
                     </div>
-                    <h4 class="text-xs font-bold text-white mb-1">${finding.title}</h4>
-                    <p class="text-[10px] text-gray-400 leading-normal mb-2">${finding.description}</p>
+                    <h4 class="text-xs font-bold text-white mb-1">${escapeHtml(finding.title)}</h4>
+                    <p class="text-[10px] text-gray-400 leading-normal mb-2">${escapeHtml(finding.description)}</p>
                     <div class="bg-black/30 p-2 rounded text-[10px] text-green-400 border border-green-900/30">
-                        <span class="font-bold">💡 Öneri:</span> ${finding.recommendation}
+                        <span class="font-bold">💡 Öneri:</span> ${escapeHtml(finding.recommendation)}
                     </div>
                 </div>
             `;
@@ -613,7 +646,7 @@ class AppController {
             return;
         }
 
-        if (type === 'visibility') {
+        if (type === 'visibility' || type === 'visible') {
             this.state.addStep({
                 type: 'assert_visible',
                 locator: element.locator
@@ -700,6 +733,7 @@ class AppController {
         window._appScanScreen = () => this.scanScreen();
         window.scanScreen = window._appScanScreen;
         window.scanPage = window.scanScreen; // Alias for backward compatibility
+        window.deepScanScreen = () => this.deepScanScreen();
 
         window.performTap = (x, y, w, h) => this.performTap(x, y, w, h);
         window.performScroll = (dir) => this.performScroll(dir);
@@ -1073,7 +1107,7 @@ _Red Pather ile bulundu_`;
             };
 
             setLoading(true);
-            this.ui.showToast("🤖 AI Working", "Analyzing elements and generating keywords...", "info");
+            this.ui.showToast("🤖 AI Çalışıyor", "Elementler analiz ediliyor ve keyword üretiliyor...", "info");
 
             try {
                 // Element verilerini hazırla
@@ -1087,19 +1121,13 @@ _Red Pather ile bulundu_`;
                 // Screenshot al (opsiyonel ama AI için faydalı)
                 const screenshot = window.appState?.get('screenshot.base64') || '';
 
-                const response = await fetch('/api/ai/generate-keywords', {
+                const result = await this.api.request('/api/ai/generate-keywords', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        elements,
-                        screenshot
-                    })
+                    body: { elements, screenshot }
                 });
 
-                const result = await response.json();
-
-                if (result.status === 'success' && result.data?.full_output) {
-                    const textContent = result.data.full_output;
+                if (result?.full_output) {
+                    const textContent = result.full_output;
 
                     // Count generated items
                     const varCount = (textContent.match(/\$\{selector/g) || []).length;
@@ -1107,13 +1135,13 @@ _Red Pather ile bulundu_`;
 
                     // Show modal with content
                     window.showAIKeywordsModal(textContent, varCount, kwCount);
-                    this.ui.showToast("✨ AI Keywords Ready!", "Review and copy from modal", "success");
+                    this.ui.showToast("✨ AI Keywords Hazır!", "İnceleyip kopyalayabilirsiniz", "success");
                 } else {
-                    throw new Error(result.error || 'AI generation failed');
+                    throw new Error('AI keyword üretimi boş döndü');
                 }
             } catch (error) {
                 console.error('AI keyword generation error:', error);
-                this.ui.showToast("❌ Error", error.message, "error");
+                this.ui.showToast("AI Hatası", error.userMessage || error.message || "Keyword üretimi başarısız", "error");
             } finally {
                 setLoading(false);
             }

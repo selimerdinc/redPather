@@ -550,6 +550,16 @@ class SessionManager:
     # DATA ACCESS
     # ==========================================
     
+    def _handle_driver_error(self, error: Exception, context: str):
+        """Log error and check if driver is dead"""
+        logger.error(f"{context} failed: {error}")
+        err_str = str(error).lower()
+        if "invalid session" in err_str or "session does not exist" in err_str or "refused" in err_str:
+            logger.warning(f"⚠️ Session appears dead during {context}. Removing driver.")
+            with self._lock:
+                if self.platform in self.drivers:
+                    del self.drivers[self.platform]
+
     def get_page_source(self) -> str:
         """Aktif driver'ın page source'unu döndürür."""
         driver = self.get_driver()
@@ -557,7 +567,7 @@ class SessionManager:
             try:
                 return driver.page_source
             except Exception as e:
-                logger.error(f"Failed to get page source: {e}")
+                self._handle_driver_error(e, "Page source")
         return None
     
     def take_screenshot(self) -> str:
@@ -567,7 +577,7 @@ class SessionManager:
             try:
                 return driver.get_screenshot_as_base64()
             except Exception as e:
-                logger.error(f"Screenshot failed: {e}")
+                self._handle_driver_error(e, "Screenshot")
         return None
     
     def get_window_size(self) -> dict:
@@ -577,6 +587,6 @@ class SessionManager:
             try:
                 return driver.get_window_size()
             except Exception as e:
-                logger.error(f"Failed to get window size: {e}")
+                self._handle_driver_error(e, "Window size")
                 return {"width": 0, "height": 0}
         return {"width": 0, "height": 0}

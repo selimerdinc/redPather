@@ -1,5 +1,6 @@
 import logging
 from flask import Blueprint, request, jsonify
+import requests
 from backend.core.context import driver_mgr
 from backend.api.middleware import create_error_response, create_success_response
 
@@ -31,9 +32,8 @@ def list_sessions():
 
         # 3. iOS - WebDriverAgent (Sessiz Keşif - 8100 Port)
         try:
-            import requests as req_lib
             logger.debug("Checking WDA at http://127.0.0.1:8100/status")
-            wda_resp = req_lib.get('http://127.0.0.1:8100/status', timeout=2)
+            wda_resp = requests.get('http://127.0.0.1:8100/status', timeout=2)
             if wda_resp.status_code == 200:
                 wda_data = wda_resp.json()
                 wda_session_id = wda_data.get('sessionId')
@@ -99,7 +99,6 @@ def verify_session():
     Frontend localStorage'da saklanan session'ları doğrulamak için kullanılır.
     """
     try:
-        import requests
         req = request.json or {}
         session_id = req.get('sessionId')
         

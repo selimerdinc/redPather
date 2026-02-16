@@ -77,16 +77,16 @@ class ActionExecutor:
                 cx = window_size['width'] // 2
                 h = window_size['height']
                 if direction == 'down':
-                    sy, ey = int(h * 0.7), int(h * 0.3)
+                    sy, ey = int(h * 0.8), int(h * 0.2)
                 else:
-                    sy, ey = int(h * 0.3), int(h * 0.7)
+                    sy, ey = int(h * 0.2), int(h * 0.8)
 
                 actions = ActionBuilder(driver)
                 p = actions.add_pointer_input(interaction.POINTER_TOUCH, "finger")
                 p.create_pointer_move(duration=0, x=cx, y=sy)
                 p.create_pointer_down(button=0)
-                p.create_pause(0.05)
-                p.create_pointer_move(duration=300, x=cx, y=ey)
+                p.create_pause(0.1)
+                p.create_pointer_move(duration=1000, x=cx, y=ey)
                 p.create_pointer_up(button=0)
                 actions.perform()
             time.sleep(0.8)

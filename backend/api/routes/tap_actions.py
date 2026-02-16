@@ -9,21 +9,13 @@ from appium.webdriver.common.appiumby import AppiumBy
 
 from backend.core.context import driver_mgr, cache_mgr, gemini_service
 from backend.core.exceptions import DriverError, ValidationError
+from backend.core.constants import STRATEGY_MAP
 from backend.api.middleware import create_error_response, create_success_response
 from backend.api.services.page_analyzer import PageAnalyzer
 from backend.api.services.crash_detector import crash_detector
 
 logger = logging.getLogger(__name__)
 tap_bp = Blueprint('tap', __name__)
-
-# Locator strategy mapping
-STRATEGY_MAP = {
-    'id': AppiumBy.ID,
-    'xpath': AppiumBy.XPATH,
-    'accessibility_id': AppiumBy.ACCESSIBILITY_ID,
-    'class_name': AppiumBy.CLASS_NAME,
-    'name': AppiumBy.NAME
-}
 
 
 def _extract_element_info(elem, platform: str) -> dict:

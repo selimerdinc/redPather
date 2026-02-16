@@ -6,6 +6,15 @@ class ExportManager {
     constructor(stateService, uiManager) {
         this.state = stateService;
         this.ui = uiManager;
+
+        // Fix #10: React to state changes instead of direct DOM manipulation in StateService
+        this.state.subscribe('recorder.steps', (steps) => {
+            const badge = document.getElementById('stepCountBadge');
+            if (badge && this.state.get('recorder.isRecording')) {
+                badge.textContent = steps.length;
+                badge.classList.remove('hidden');
+            }
+        });
     }
 
     toggleRecordMode() {
@@ -214,8 +223,8 @@ class ExportManager {
 
         steps.forEach((step, i) => {
             if (step.locator) {
-                var strat = step.locator.split('=')[0] === 'id' ? 'ID' : 'XPATH';
-                var val = step.locator.split('=')[1];
+                const strat = step.locator.split('=')[0] === 'id' ? 'ID' : 'XPATH';
+                const val = step.locator.split('=')[1];
             }
             code += `    # Step ${i + 1}\n`;
 

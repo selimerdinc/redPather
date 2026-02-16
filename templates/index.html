@@ -39,9 +39,11 @@
                 class="flex items-center gap-2 px-2 py-1 rounded-full bg-[#18181b] border border-[#27272a] tooltip-btn shrink-0"
                 data-tooltip="Appium Bağlantı Durumu
 Cihazınızla bağlantı aktif mi gösterir">
-                <div id="connectionDot" class="w-1.5 h-1.5 rounded-full bg-gray-500"></div>
-                <span id="connectionText" class="text-[8px] font-bold text-gray-500 uppercase hidden xl:block">BAĞLANTI
-                    YOK</span>
+                <div id="connectionDot" class="w-1.5 h-1.5 rounded-full bg-gray-500 transition-all duration-500"></div>
+                <span id="connectionText"
+                    class="text-[8px] font-bold text-gray-500 uppercase hidden xl:block">YÜKLENİYOR...</span>
+                <button onclick="window.reconnect()" id="reconnectBtn"
+                    class="hidden ml-1 text-[8px] text-white bg-red-600 hover:bg-red-500 px-1.5 py-0.5 rounded transition-all active:scale-95">YENİLE</button>
             </div>
 
             <div class="w-px h-5 bg-[#27272a] hidden md:block"></div>
@@ -203,6 +205,17 @@ Yapay zeka ile Robot Framework keyword'leri ve test adımları oluştur">
                     <span class="hidden xl:inline">KEYWORDS</span>
                 </button>
 
+                <button onclick="window.deepScanScreen()" id="deepScanBtn"
+                    class="bg-gradient-to-r from-indigo-700 to-indigo-600 hover:from-indigo-600 hover:to-indigo-500 text-white px-3 py-1.5 rounded-lg text-[9px] font-black transition-all shadow-[0_0_15px_rgba(79,70,229,0.2)] hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] active:scale-95 flex items-center gap-1 tooltip-btn border border-white/10 shrink-0"
+                    data-tooltip="🌊 DEEP SCAN - Otomatik Tara
+Tüm sayfayı (scroll dahil) analiz et">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                            d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                    <span>DEEP</span>
+                </button>
+
                 <button onclick="window.scanScreen()" id="scanBtn"
                     class="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white px-3 py-1.5 rounded-lg text-[9px] font-black transition-all shadow-[0_0_15px_rgba(220,38,38,0.2)] hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] active:scale-95 flex items-center gap-1 tooltip-btn border border-white/10 shrink-0"
                     data-tooltip="⚡ SCAN - Ekranı Tara
@@ -225,6 +238,15 @@ Android locator'larını iOS'a veya iOS'u Android'e dönüştür">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                    </button>
+                    <button id="aiAuditBtn" onclick="window.aiVisualAudit()"
+                        class="hidden w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-amber-600/20 to-orange-600/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-400 hover:text-amber-300 transition-all tooltip-btn border border-amber-500/20"
+                        data-tooltip="✨ AI Görsel Denetim
+Ekran görüntüsünü yapay zeka ile analiz et ve UI/UX raporu oluştur">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                     </button>
                     <button onclick="window.openConfig()"
@@ -621,13 +643,7 @@ Appium, cihaz ve AI yapılandırması">
     <script src="{{ url_for('static', filename='js/components/session-reconnect.js') }}"></script>
     <script src="{{ url_for('static', filename='js/components/locator-mapper.js') }}"></script>
 
-    <!-- Controllers -->
-    <script src="{{ url_for('static', filename='js/controllers/device-controller.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/controllers/ai-controller.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/controllers/log-controller.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/controllers/scan-controller.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/controllers/action-controller.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/controllers/export-controller.js') }}"></script>
+    <!-- Controllers removed: all logic is in app.js AppController -->
     <script src="{{ url_for('static', filename='js/components/tooltip-manager.js') }}"></script>
 
 

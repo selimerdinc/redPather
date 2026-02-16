@@ -12,6 +12,7 @@ from backend.core.context import driver_mgr, config_mgr, cache_mgr
 from backend.core.exceptions import DriverError, ParseError, ValidationError
 from backend.core.constants import VALID_PLATFORMS, SCREENSHOT_CACHE_TTL
 from backend.api.services.page_analyzer import PageAnalyzer
+from backend.api.services.deep_scan_service import DeepScanService
 from backend.api.services.gemini_service import GeminiService
 from backend.api.middleware import create_error_response, create_success_response
 
@@ -61,7 +62,7 @@ def scan():
             raise DriverError("Failed to capture screenshot", "Screen might be locked or device disconnected")
 
         if win_size['width'] == 0 or win_size['height'] == 0:
-            raise DriverError("Failed to get window size", "Device might be in an invalid state")
+            raise DriverError("Failed to get window size", "Device might in an invalid state")
 
         source_hash = hashlib.md5(source.encode()).hexdigest()
 
@@ -79,7 +80,8 @@ def scan():
             logger.info(f"📸 Screenshot captured and cached")
 
         # Analiz (XML Parse)
-        analyzer = PageAnalyzer(driver)
+        if 'analyzer' not in locals():
+            analyzer = PageAnalyzer(driver)
         result = analyzer.analyze(source, platform, verify, prefix, win_size)
 
         if "error" in result:
@@ -104,3 +106,36 @@ def scan():
     except Exception as e:
         logger.error(f"Unexpected scan error: {e}", exc_info=True)
         return jsonify(create_error_response("Unexpected error during scan", str(e))), 500
+
+@scan_bp.route('/scan/deep', methods=['POST'])
+def deep_scan():
+    """
+    Experimental: Perform auto-scroll deep scan
+    """
+    try:
+        req = request.json or {}
+        platform = req.get("platform", "ANDROID")
+        steps = req.get("steps", 3)
+        prefix = req.get("prefix", "deep").strip().lower()
+
+        if platform not in VALID_PLATFORMS:
+            raise ValidationError(f"Invalid platform: {platform}")
+
+        driver = driver_mgr.get_driver() or driver_mgr.start_driver(platform)
+        
+        service = DeepScanService()
+        result = service.perform_deep_scan(platform, steps, prefix)
+
+        if "error" in result:
+            return jsonify(create_error_response("Deep scan failed", result["error"])), 500
+
+        logger.info(f"✅ Deep Scan complete: {len(result['elements'])} elements found")
+
+        return jsonify(create_success_response(data=result))
+
+    except (DriverError, ValidationError) as e:
+        logger.warning(f"Deep scan validation/driver error: {str(e)}")
+        raise e
+    except Exception as e:
+        logger.error(f"Deep scan unexpected error: {e}", exc_info=True)
+        return jsonify(create_error_response("Deep scan failed", str(e))), 500

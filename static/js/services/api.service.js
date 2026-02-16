@@ -15,7 +15,7 @@ class ApiError extends Error {
 class ApiService {
     constructor() {
         this.baseUrl = '';
-        this.timeout = 30000;
+        this.timeout = 180000;
         this.retryAttempts = 2;
         this.retryDelay = 1000;
     }
@@ -73,6 +73,7 @@ class ApiService {
     async getConfig() { return await this.request('/api/config', { method: 'GET' }); }
     async saveConfig(config) { return await this.request('/api/config', { method: 'POST', body: config }); }
     async scan(platform, verify, prefix) { return await this.request('/api/scan', { method: 'POST', body: { platform, verify, prefix } }); }
+    async deepScan(platform, steps = 3, prefix = 'deep') { return await this.request('/api/scan/deep', { method: 'POST', body: { platform, steps, prefix } }); }
     async tap(x, y, img_w, img_h, platform) { return await this.request('/api/tap', { method: 'POST', body: { x, y, img_w, img_h, platform } }); }
     async scroll(direction, platform) { return await this.request('/api/scroll', { method: 'POST', body: { direction, platform } }); }
     async back() { return await this.request('/api/back', { method: 'POST' }); }

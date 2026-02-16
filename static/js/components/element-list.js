@@ -10,6 +10,13 @@ class ElementListManager {
         }
     }
 
+    // XSS koruması: HTML özel karakterlerini escape et
+    _escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
     render(elements) {
         if (!this.container) return;
         this.container.innerHTML = '';
@@ -60,6 +67,11 @@ class ElementListManager {
             focus-within:ring-2 focus-within:ring-red-500/40
             transition-all duration-300 cursor-pointer active:scale-[0.98] overflow-hidden`;
 
+        // XSS-safe değerler
+        const safeVariable = this._escapeHtml(el.variable);
+        const safeLocator = this._escapeHtml(el.locator);
+        const escapedLocator = el.locator.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
         item.innerHTML = `
             <!-- Premium Red Accent Bar -->
             <div class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-500/20 via-red-500/50 to-red-500/20 group-hover:via-red-400 group-hover:shadow-[0_0_8px_rgba(239,68,68,0.4)] transition-all duration-500"></div>
@@ -75,7 +87,7 @@ class ElementListManager {
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between mb-1.5 gap-2">
                         <span class="text-[13px] font-semibold text-zinc-50 truncate tracking-tight group-hover:text-white transition-colors cursor-text" 
-                              ondblclick="event.stopPropagation(); window.startEdit(this, ${index}, 'variable')">${el.variable}</span>
+                              ondblclick="event.stopPropagation(); window.startEdit(this, ${index}, 'variable')">${safeVariable}</span>
                         <div class="flex items-center gap-1">
                             <span class="text-[8px] ${healthColor} font-bold" title="${healthTip}">${healthScore}</span>
                             <span class="text-[9px] px-2 py-0.5 rounded-md ${badgeColor} font-black border uppercase tracking-wider">${el.strategy}</span>
@@ -84,18 +96,18 @@ class ElementListManager {
                     
                     <div class="relative group/loc">
                         <code class="block text-[11px] text-zinc-400 font-mono font-medium truncate bg-black/30 px-2.5 py-2 rounded-lg border border-white/10 hover:border-red-500/40 hover:text-zinc-200 transition-all cursor-text"
-                              ondblclick="event.stopPropagation(); window.startEdit(this, ${index}, 'locator')">${el.locator}</code>
+                              ondblclick="event.stopPropagation(); window.startEdit(this, ${index}, 'locator')">${safeLocator}</code>
                     </div>
 
                     <!-- Actions Panel - Refined -->
                     <div class="flex items-center justify-between mt-3 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300">
                         <div class="flex items-center gap-2">
-                            <button onclick="event.stopPropagation(); window.ElementListManager.prototype.handleVerifyAction(this, ${index}, '${el.locator}')" 
+                            <button onclick="event.stopPropagation(); window._verifyElement(this, ${index}, '${escapedLocator}')" 
                                     class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-emerald-500/20 text-zinc-400 hover:text-emerald-400 transition-all border border-white/10 hover:border-emerald-500/30" 
                                     title="Doğrula">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                             </button>
-                            <button onclick="event.stopPropagation(); window.ElementListManager.prototype.staticHandleCopy('${el.variable}', '${el.locator}')" 
+                            <button onclick="event.stopPropagation(); window._copyElement('${this._escapeHtml(el.variable.replace(/[${}]/g, ''))}', '${escapedLocator}')" 
                                     class="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-violet-500/20 text-zinc-400 hover:text-violet-400 transition-all border border-white/10 hover:border-violet-500/30" 
                                     title="Kopyala">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
@@ -131,24 +143,21 @@ class ElementListManager {
         return item;
     }
 
-    // Helper to handle actions from onclick strings
-    handleVerifyAction(btn, index, locator) {
-        this.handleVerify(new Event('click'), index, btn, locator);
+    // Fix #3: Global helper fonksiyonlar — prototype çağrısı bozuktu
+    static registerGlobalHelpers(instance) {
+        window._verifyElement = (btn, index, locator) => {
+            instance.handleVerify(new Event('click'), index, btn, locator);
+        };
+        window._copyElement = (variable, locator) => {
+            ElementListManager.staticHandleCopy(variable, locator);
+        };
     }
 
     static staticHandleCopy(variable, locator) {
-        const txt = `\${${variable.replace(/[${}]/g, '')}}\t${locator}`;
+        const txt = `\${${variable}}\t${locator}`;
         navigator.clipboard.writeText(txt).then(() => {
             if (window.app && window.app.ui) window.app.ui.showToast("Kopyalandı", "Satır kopyalandı", 'success');
         });
-    }
-
-    createActionButton(iconHtml, title, isDelete = false) {
-        const btn = document.createElement('button');
-        btn.className = `w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 hover:bg-zinc-700 text-zinc-500 hover:text-white transition-all border border-white/5 ${isDelete ? 'ml-auto' : ''}`;
-        btn.title = title;
-        btn.innerHTML = iconHtml;
-        return btn;
     }
 
     async handleVerify(e, index, btn, locator) {

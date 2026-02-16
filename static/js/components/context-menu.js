@@ -76,6 +76,13 @@ class ContextMenu {
         let top = y;
         let left = x;
 
+        // Yatay taşma kontrolü (sağ kenar)
+        if (left + this.menu.offsetWidth > window.innerWidth) {
+            left = left - this.menu.offsetWidth;
+        }
+        if (left < 0) left = 10;
+
+        // Dikey taşma kontrolü (alt kenar)
         if (top + this.menu.offsetHeight > window.innerHeight) {
             top = top - this.menu.offsetHeight;
         }

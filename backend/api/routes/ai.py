@@ -83,10 +83,6 @@ def visual_audit():
         custom_prompt = data.get('prompt')
         
         report = gemini.visual_audit(screenshot_bytes, custom_instructions=custom_prompt)
-        
-        if not report:
-            return jsonify(create_error_response("AI failed to generate report")), 500
-            
         return jsonify(create_success_response(data={"report": report}))
     except Exception as e:
         logger.error(f"AI Visual Audit Error: {e}")
@@ -112,10 +108,6 @@ def generate_bug_description():
         gemini = get_gemini_service()
         
         description = gemini.generate_bug_description(screenshot_bytes, element_info, platform)
-        
-        if not description:
-            return jsonify(create_error_response("AI failed to generate description")), 500
-            
         return jsonify(create_success_response(data={"description": description}))
     except Exception as e:
         logger.error(f"AI Generate Bug Description Error: {e}")
@@ -144,9 +136,6 @@ def generate_keywords():
         custom_prompt = config_mgr.get('AI_CUSTOM_PROMPT', "")
         
         result = gemini.generate_keywords(elements, screenshot_bytes, custom_prompt)
-        
-        if not result:
-            return jsonify(create_error_response("AI failed to generate keywords")), 500
         
         # Boşluklu accessibility_id locator'ları XPath'e dönüştür
         if result.get('variables'):
@@ -198,10 +187,6 @@ def translate_variable_names():
             return jsonify(create_error_response("AI not configured", "Please add Gemini API key in settings")), 400
         
         result = gemini.translate_variable_names(variable_names)
-        
-        if not result:
-            return jsonify(create_error_response("AI failed to translate names")), 500
-        
         return jsonify(create_success_response(data={"translations": result}))
     except Exception as e:
         logger.error(f"AI Translate Names Error: {e}")

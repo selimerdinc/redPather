@@ -15,8 +15,18 @@ class UIManager {
         if (active) {
             if (loadingText) loadingText.innerText = text;
             loading.classList.remove('hidden');
+            // Safety timeout: auto-reset loading after 60s to prevent stuck UI
+            if (this._loadingTimeout) clearTimeout(this._loadingTimeout);
+            this._loadingTimeout = setTimeout(() => {
+                console.warn('⚠️ Loading timeout safety net triggered (60s)');
+                this.resetState();
+            }, 60000);
         } else {
             loading.classList.add('hidden');
+            if (this._loadingTimeout) {
+                clearTimeout(this._loadingTimeout);
+                this._loadingTimeout = null;
+            }
         }
     }
 
@@ -43,7 +53,7 @@ class UIManager {
     showToast(title, message, type = 'success') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');
-        const icons = { success: '✓', error: '✕', info: 'ℹ' };
+        const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
         toast.className = `pro-toast ${type}`;
         toast.innerHTML = `<div style="font-size: 20px; font-weight: bold;">${icons[type] || '•'}</div><div><h4 class="text-sm font-bold text-white">${title}</h4><p class="text-xs text-gray-400 font-mono">${message}</p></div>`;
         container.appendChild(toast);

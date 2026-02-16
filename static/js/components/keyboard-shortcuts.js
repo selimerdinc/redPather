@@ -54,12 +54,17 @@ class KeyboardShortcuts {
         if (newIndex < 0) newIndex = elements.length - 1;
         if (newIndex >= elements.length) newIndex = 0;
 
-        // Skip deleted elements
-        while (elements[newIndex]?.isDeleted && newIndex !== currentIndex) {
+        // Skip deleted elements (sonsuz döngü koruması ile)
+        let checked = 0;
+        while (elements[newIndex]?.isDeleted && checked < elements.length) {
             newIndex += direction;
             if (newIndex < 0) newIndex = elements.length - 1;
             if (newIndex >= elements.length) newIndex = 0;
+            checked++;
         }
+
+        // Tüm elementler silinmişse hiçbir şey yapma
+        if (checked >= elements.length) return;
 
         window.highlightElement?.(newIndex, true);
     }

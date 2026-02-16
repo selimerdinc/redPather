@@ -13,20 +13,12 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from backend.core.context import driver_mgr, gemini_service
 from backend.core.exceptions import DriverError, ValidationError
+from backend.core.constants import STRATEGY_MAP
 from backend.api.middleware import create_error_response, create_success_response
 from backend.api.services.crash_detector import crash_detector
 
 logger = logging.getLogger(__name__)
 input_bp = Blueprint('input', __name__)
-
-# Locator strategy mapping
-STRATEGY_MAP = {
-    'id': AppiumBy.ID,
-    'xpath': AppiumBy.XPATH,
-    'accessibility_id': AppiumBy.ACCESSIBILITY_ID,
-    'name': AppiumBy.NAME,
-    'class_name': AppiumBy.CLASS_NAME
-}
 
 
 def _parse_locator(locator: str) -> tuple:
