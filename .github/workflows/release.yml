@@ -1,0 +1,49 @@
+name: Build and Release Red Pather
+
+on:
+  push:
+    tags:
+      - 'v*' # v1.3.1 gibi bir tag pushlandığında çalışır
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller RedPather.spec
+
+      - name: Package App as ZIP
+        run: |
+          cd dist
+          zip -r RedPather-${{ github.ref_name }}-macOS.zip RedPather.app
+          mv RedPather-${{ github.ref_name }}-macOS.zip ../
+
+      - name: Create Release and Upload Asset
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: RedPather-${{ github.ref_name }}-macOS.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
