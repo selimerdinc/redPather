@@ -78,7 +78,18 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### 4. Homebrew (Önerilen)
+Eğer macOS kullanıyorsanız, Red Pather'ı Homebrew üzerinden kurabilirsiniz:
+
+```bash
+brew tap selimerdinc/redpather
+brew install redpather
+```
+
+---
+
 ## 🚀 Kullanım
+
 
 ### 1. Sunucuları Başlatın
 
