@@ -1,0 +1,3 @@
+[submodule "homebrew-redpather"]
+	path = homebrew-redpather
+	url = https://github.com/selimerdinc/homebrew-redpather.git
